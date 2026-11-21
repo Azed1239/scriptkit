@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Difficulty
+- Per-NPC difficulty presets (`easy`, `normal`, `hard`, `nightmare`), saved in NBT so each army can have its own: damage, health, melee and archer accuracy, jump-crit chance, swing rate, speed, shield skill, reaction speed and detection range. Edit or add presets in `combat.json`.
+- `/army spawn ... [difficulty]`, `/army difficulty [<team|all> <level>]`, `/npc difficulty <name|all> <level>`; `/army list` and `/npc info` show the difficulty. Changing it mid-fight takes effect immediately and keeps each NPC's health as a fraction of its new maximum.
+- The top-level `meleeAccuracy`, `archerAccuracy` and `critChance` options from the previous change moved into the presets.
+
+### Combat tweaks
+- Melee accuracy: swings now connect with a probability set by the difficulty (normal 75%, 15% lower against a moving target), so mismatched armies no longer wipe each other out instantly. Misses swing, play a sound and use up the cooldown. In a dev test 71% of swings connected.
+- `/npc info <name>` explains why an NPC is or isn't fighting: its AI state, team, target, and a verdict for each nearby entity.
+- `targetCreativePlayers` option (default false) to make NPCs chase and swing at players in creative mode.
+
 ### Phase 4: keybinds and networking
 - Client keybinds in a "ScriptKit" Controls category: "Toggle all armies" (G) and three unbound "Toggle team" slots whose teams come from `keybinds.json`.
 - Key combos from `config/scriptkit/keybinds.json` (sample written on first run): multi-key, exact matching (Ctrl+R does not fire plain R, and plain G is not fired while a modifier is held) and edge-triggered. Actions: toggleAll, toggleTeam, enableAll, disableAll, enableTeam, disableTeam. Bad entries log a clear warning and are skipped.

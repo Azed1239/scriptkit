@@ -60,7 +60,7 @@ public class NpcTargetGoal extends Goal {
 		if (--countdown > 0 && !rescan) {
 			return;
 		}
-		countdown = cfg.retargetIntervalTicks;
+		countdown = Math.max(2, (int) Math.round(cfg.retargetIntervalTicks / npc.difficulty().reaction));
 		LivingEntity best = findNearest(cfg);
 		if (best == null || best == current) {
 			return;
@@ -87,20 +87,70 @@ public class NpcTargetGoal extends Goal {
 		return best;
 	}
 
-	/** Enemy = alive, on a different scoreboard team, in range, not a spectator/creative player. */
+	/** Why an entity is not a valid target (or {@link Reject#NONE} if it is). Cheap enough for the hot path. */
+	public enum Reject {
+		NONE(""),
+		SELF("it is this NPC"),
+		DEAD("dead or removed"),
+		OTHER_DIMENSION("in a different dimension"),
+		NPC_NO_TEAM("this NPC is not on any team"),
+		TARGET_NO_TEAM("not on any team (join one with /team join)"),
+		SAME_TEAM("on the same team"),
+		SPECTATOR("in spectator mode"),
+		CREATIVE("in creative mode (set targetCreativePlayers to true in combat.json to attack them)"),
+		NO_HURT_PLAYERS("npcsCanHurtPlayers is off in combat.json"),
+		IGNORED("unreachable a moment ago, ignored for a few seconds"),
+		TOO_FAR("out of detection range");
+
+		public final String reason;
+
+		Reject(String reason) {
+			this.reason = reason;
+		}
+	}
+
+	/** Enemy = alive, on a different scoreboard team, in range, not a spectator (or creative) player. */
 	public static boolean isValidTarget(ScriptNpc npc, LivingEntity e, CombatConfig cfg) {
-		if (e == npc || !e.isAlive() || e.isRemoved() || e.level() != npc.level()) {
-			return false;
+		return check(npc, e, cfg) == Reject.NONE;
+	}
+
+	public static Reject check(ScriptNpc npc, LivingEntity e, CombatConfig cfg) {
+		if (e == npc) {
+			return Reject.SELF;
 		}
-		if (npc.getTeam() == null || e.getTeam() == null || npc.isAlliedTo(e)) {
-			return false;
+		if (!e.isAlive() || e.isRemoved()) {
+			return Reject.DEAD;
 		}
-		if (e instanceof Player p && (p.isSpectator() || p.isCreative() || !cfg.npcsCanHurtPlayers)) {
-			return false;
+		if (e.level() != npc.level()) {
+			return Reject.OTHER_DIMENSION;
+		}
+		if (npc.getTeam() == null) {
+			return Reject.NPC_NO_TEAM;
+		}
+		if (e.getTeam() == null) {
+			return Reject.TARGET_NO_TEAM;
+		}
+		if (npc.isAlliedTo(e)) {
+			return Reject.SAME_TEAM;
+		}
+		if (e instanceof Player p) {
+			if (p.isSpectator()) {
+				return Reject.SPECTATOR;
+			}
+			if (!cfg.npcsCanHurtPlayers) {
+				return Reject.NO_HURT_PLAYERS;
+			}
+			if (p.isCreative() && !cfg.targetCreativePlayers) {
+				return Reject.CREATIVE;
+			}
 		}
 		if (npc.isIgnoring(e)) {
-			return false;
+			return Reject.IGNORED;
 		}
-		return npc.distanceToSqr(e) <= cfg.detectionRange * cfg.detectionRange;
+		double range = cfg.detectionRange * npc.difficulty().range;
+		if (npc.distanceToSqr(e) > range * range) {
+			return Reject.TOO_FAR;
+		}
+		return Reject.NONE;
 	}
 }

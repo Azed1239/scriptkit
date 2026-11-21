@@ -57,7 +57,7 @@ public final class ArmyManager {
 	}
 
 	/** Spawns {@code count} NPCs named team-N in a formation centered on {@code origin}. Returns how many were added. */
-	public static int spawn(ServerLevel level, Vec3 origin, float yaw, int count, String team, String kit, String skin, Formation formation) {
+	public static int spawn(ServerLevel level, Vec3 origin, float yaw, int count, String team, String kit, String skin, Formation formation, String difficulty) {
 		MinecraftServer server = level.getServer();
 		int next = nextIndex(server, team);
 		int spawned = 0;
@@ -75,6 +75,11 @@ public final class ArmyManager {
 			npc.setSkinName(skin == null ? name : skin);
 			npc.setKit(kit);
 			npc.setTeamName(team);
+			if (difficulty != null) {
+				npc.setDifficulty(difficulty);
+			} else {
+				npc.applyDifficulty(true);
+			}
 			if (level.addFreshEntity(npc)) {
 				spawned++;
 			}
@@ -101,6 +106,25 @@ public final class ArmyManager {
 			npc.setAiEnabled(enable);
 		}
 		return new AiResult(npcs.size(), enable);
+	}
+
+	/** Sets the difficulty preset of every NPC on {@code team} (or all). Returns how many NPCs changed. */
+	public static int setDifficulty(MinecraftServer server, String team, String difficulty) {
+		List<ScriptNpc> npcs = select(server, team);
+		for (ScriptNpc npc : npcs) {
+			npc.setDifficulty(difficulty);
+		}
+		return npcs.size();
+	}
+
+	/** team name ("-" for none) -> difficulty name, or "mixed" if the team has several. */
+	public static Map<String, String> difficulties(MinecraftServer server) {
+		Map<String, String> result = new TreeMap<>();
+		for (ScriptNpc npc : NpcManager.all(server)) {
+			String team = npc.getTeamName().isEmpty() ? "-" : npc.getTeamName();
+			result.merge(team, npc.getDifficultyName(), (a, b) -> a.equals(b) ? a : "mixed");
+		}
+		return result;
 	}
 
 	public static int remove(MinecraftServer server, String team) {

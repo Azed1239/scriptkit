@@ -32,6 +32,8 @@ NPCs are lightweight entities rendered like players with a skin fetched by usern
 | `/npc remove <name\|all>` | Remove NPCs. |
 | `/npc list` | List NPCs with skin, team, kit and position. |
 | `/npc kit <name\|all> <kit>` | Change gear. |
+| `/npc difficulty <name\|all> <level>` | Set one NPC's (or every NPC's) difficulty. |
+| `/npc info <name>` | Why is this NPC (not) fighting? Shows its AI state, team and target, and for the 8 nearest living entities whether each is a valid enemy or why it is ignored (same team, creative mode, out of range, no team...). |
 
 All commands need op (gamemaster) permission. NPC names are unique (case-insensitive) among loaded NPCs; `all` is reserved. Commands only see NPCs in loaded chunks.
 
@@ -49,11 +51,13 @@ Omitted slots are emptied. NPCs drop all equipped gear when they die, like a pla
 
 | Command | Effect |
 |---|---|
-| `/army spawn <count> <team> [kit] [skin] [formation]` | Spawn `<count>` NPCs named `<team>-1`, `<team>-2`, ... around you in a `circle` (default) or `grid`. Skin defaults to each NPC's name. Numbering continues from the highest existing number on that team. |
+| `/army spawn <count> <team> [kit] [skin] [formation] [difficulty]` | Spawn `<count>` NPCs named `<team>-1`, `<team>-2`, ... around you in a `circle` (default) or `grid`. Skin defaults to each NPC's name. Numbering continues from the highest existing number on that team. |
 | `/army toggle <team\|all> [on\|off]` | Set `aiEnabled` for a team; without `on`/`off` each NPC's state is flipped. |
 | `/army remove <team\|all>` | Remove a team's NPCs. |
 | `/army list` | NPC count per team, and how many have AI on. |
 | `/army team <selector> <team>` | Move NPCs to a team, e.g. `/army team @e[type=scriptkit:npc,distance=..10] red`. |
+| `/army difficulty` | List the difficulty presets and what each changes. |
+| `/army difficulty <team\|all> <level>` | Set an army's difficulty (also saved with each NPC). |
 | `/army blocks [on\|off]` | Turn NPC mining and building on or off (saved to `combat.json`). Without an argument, shows the current state. |
 | `/army cleanup` | Put back every block NPCs mined or placed. Blocks changed since by someone else are left alone. |
 
@@ -75,7 +79,7 @@ With AI on, NPCs fight (see Combat below). With AI off they stand still and run 
 
 With AI on, each NPC:
 
-- **Targets** the nearest living entity on a *different* scoreboard team within `detectionRange`: other NPCs and players. Teammates, spectators, creative players and players without a team are never targeted, so you can walk among armies while filming. To join a fight, put yourself on a team with `/team join`.
+- **Targets** (shown by `/npc info`) the nearest living entity on a *different* scoreboard team within `detectionRange`: other NPCs and players. Teammates, spectators, creative players (unless `targetCreativePlayers`) and players without a team are never targeted, so you can walk among armies while filming. Enemies farther than `detectionRange` are not noticed either: when one army wipes out another, the survivors go idle unless another enemy is within range. To join a fight, put yourself on a team with `/team join`.
 - **Melee:** chases with vanilla pathfinding (sprinting when far), swings at the weapon's real attack speed (fists fast, swords medium, axes slow), and uses the weapon's damage and knockback. In melee range it circle-strafes, changing direction at random, and sometimes steps back after being hit.
 - **Critical hits:** sometimes (`critChance`) they hop just before a swing and strike on the way down, like a player's jump-crit: 1.5x damage, crit particles and sound.
 - **Shield:** with a shield in the offhand it keeps the shield up while an enemy is close, lowers it only to swing, and times its swing to land right after an NPC opponent's attack.
@@ -100,6 +104,25 @@ When an NPC dies, chat shows a player-style death message (for example `red-3 wa
 
 Target scanning is throttled: one shared list of combat-relevant entities per world, rebuilt every 10 ticks, and each NPC re-picks its target every `retargetIntervalTicks`, staggered by entity id.
 
+### Difficulty
+
+Every NPC has a difficulty preset, saved with it, so different armies can fight at different levels. New NPCs use `defaultDifficulty` (normal); `/army spawn ... <formation> <difficulty>` sets it at spawn, and `/army difficulty red nightmare` changes a whole army at any time, even mid-fight. `/army list` and `/npc info` show it.
+
+| | easy | normal | hard | nightmare |
+|---|---|---|---|---|
+| Damage dealt (melee and arrows) | x0.6 | x1.0 | x1.6 | x3.0 |
+| Health | x0.8 | x1.0 | x1.3 | x2.0 |
+| Melee accuracy | 45% | 75% | 90% | 100% |
+| Archer accuracy | 50% | 80% | 92% | 100% |
+| Jump crit chance | 10% | 35% | 50% | 70% |
+| Swing rate | x0.8 | x1.0 | x1.15 | x1.3 |
+| Speed | x1.0 | x1.0 | x1.05 | x1.1 |
+| Shield skill | 30% | 70% | 90% | 100% |
+| Reaction (how fast they notice and switch enemies) | x0.5 | x1.0 | x1.5 | x2.5 |
+| Detection range | x0.8 | x1.0 | x1.2 | x1.5 |
+
+Against a player in full enchanted netherite (the `god` kit) a normal NPC lands hits that do only a few points of damage, so a god-kit player needs `hard` or `nightmare` armies to be in real danger. Presets are plain entries in the `difficulties` section of `combat.json`; edit them or add your own (any name works in the commands). Values are clamped to sane ranges so a typo can't break fights. `damageMultiplier` below still applies on top of the preset.
+
 ### Combat config
 
 `config/scriptkit/combat.json`, created on first run and re-read on server start (new options are added to older files automatically):
@@ -110,11 +133,12 @@ Target scanning is throttled: one shared list of combat-relevant entities per wo
 | `retargetIntervalTicks` | 20 | How often each NPC re-picks its target. |
 | `strafe` | true | Circle-strafe and step back in melee. |
 | `block` | true | Use offhand shields. |
-| `archerAccuracy` | 0.8 | 0 = wild, 1 = perfect. |
-| `damageMultiplier` | 1.0 | Scales all NPC damage (melee and arrows). Lower = longer fights. |
+| `targetCreativePlayers` | false | Also chase and swing at players in creative mode (they can't be hurt). |
+| `defaultDifficulty` | normal | Difficulty for NPCs that don't have one set. |
+| `difficulties` | (4 presets) | The presets above: accuracy, crit chance, damage, health, speed and more. |
+| `damageMultiplier` | 1.0 | Scales all NPC damage (melee and arrows) on top of the difficulty. Lower = longer fights. |
 | `npcsCanHurtPlayers` | true | If false, NPCs never target players. |
 | `playerFriendlyFire` | true | Players can damage NPCs on their own team (accidental hits count). |
-| `critChance` | 0.35 | Chance a melee NPC goes for a jump-crit before a swing. 0 turns crits off. |
 | `dropKitOnDeath` | true | Drop equipped gear on death. |
 | `deathMessages` | true | Broadcast death messages (also follows the `showDeathMessages` game rule). |
 | `leaveMessages` | true | Broadcast "left the game" after a death. |

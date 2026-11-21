@@ -1,6 +1,11 @@
 package dev.scriptkit.npc;
 
+import dev.scriptkit.ScriptKitMod;
 import dev.scriptkit.ai.CombatConfig;
+import dev.scriptkit.ai.Difficulty;
+import java.util.Locale;
+import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import dev.scriptkit.ai.NpcGoals;
 import dev.scriptkit.config.ScriptKitConfig;
 import java.util.UUID;
@@ -34,6 +39,9 @@ import net.minecraft.world.scores.Scoreboard;
 public class ScriptNpc extends PathfinderMob {
 	/** Movement-speed attribute so that goal speed modifier 1.0 equals normal player walking speed. */
 	public static final double WALK_SPEED = Math.sqrt(0.1);
+	private static final Identifier HEALTH_MOD = Identifier.fromNamespaceAndPath(ScriptKitMod.MOD_ID, "difficulty_health");
+	private static final Identifier SPEED_MOD = Identifier.fromNamespaceAndPath(ScriptKitMod.MOD_ID, "difficulty_speed");
+	private static final Identifier DAMAGE_MOD = Identifier.fromNamespaceAndPath(ScriptKitMod.MOD_ID, "damage_multiplier");
 	/**
 	 * Path speed while in the vanilla sprint state. Sprinting adds +30% to the speed attribute, and mob
 	 * ground speed grows with the square of speed, so 1/sqrt(1.3) lands on a player's 5.6 blocks/s.
@@ -49,6 +57,8 @@ public class ScriptNpc extends PathfinderMob {
 	private String npcName = "";
 	private String teamName = "";
 	private String kit = "none";
+	/** Name of this NPC's difficulty preset; empty means the config default. */
+	private String difficultyName = "";
 	private boolean aiEnabled = true;
 	private UUID ignoredTarget;
 	private long ignoreUntil;
@@ -224,6 +234,59 @@ public class ScriptNpc extends PathfinderMob {
 		return kit;
 	}
 
+	/** The difficulty preset name in effect (this NPC's own, or the config default). */
+	public String getDifficultyName() {
+		return difficultyName.isEmpty() ? CombatConfig.get().defaultDifficulty : difficultyName;
+	}
+
+	/** This NPC's preset values (re-read from the config each call, so editing combat.json + reload takes effect). */
+	public Difficulty difficulty() {
+		return CombatConfig.get().difficulty(getDifficultyName());
+	}
+
+	public void setDifficulty(String name) {
+		this.difficultyName = name.toLowerCase(Locale.ROOT);
+		applyDifficulty(true);
+	}
+
+	/**
+	 * Applies the difficulty to attributes: max health, speed and damage (global damageMultiplier
+	 * times the preset's). Idempotent and cheap, so the combat goal re-runs it now and then to pick up
+	 * config reloads. When {@code scaleHealth} is set, current health keeps its fraction of the new max.
+	 */
+	public void applyDifficulty(boolean scaleHealth) {
+		if (this.level().isClientSide()) {
+			return;
+		}
+		Difficulty d = difficulty();
+		float oldMax = this.getMaxHealth();
+		setModifier(Attributes.MAX_HEALTH, HEALTH_MOD, d.health - 1.0);
+		setModifier(Attributes.MOVEMENT_SPEED, SPEED_MOD, Math.sqrt(d.moveSpeed) - 1.0); // mob speed grows with attr^2
+		setModifier(Attributes.ATTACK_DAMAGE, DAMAGE_MOD, CombatConfig.get().damageMultiplier * d.damage - 1.0);
+		float newMax = this.getMaxHealth();
+		if (scaleHealth && oldMax > 0.0F && newMax != oldMax) {
+			this.setHealth(Math.min(newMax, this.getHealth() * newMax / oldMax));
+		} else if (this.getHealth() > newMax) {
+			this.setHealth(newMax);
+		}
+	}
+
+	private void setModifier(net.minecraft.core.Holder<net.minecraft.world.entity.ai.attributes.Attribute> attribute,
+		Identifier id, double amount) {
+		AttributeInstance inst = this.getAttribute(attribute);
+		if (inst == null) {
+			return;
+		}
+		AttributeModifier current = inst.getModifier(id);
+		if (current != null && Math.abs(current.amount() - amount) < 1.0E-9) {
+			return;
+		}
+		inst.removeModifier(id);
+		if (Math.abs(amount) > 1.0E-9) {
+			inst.addTransientModifier(new AttributeModifier(id, amount, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+		}
+	}
+
 	public void setKit(String kit) {
 		this.kit = kit;
 		KitManager.apply(this, kit);
@@ -266,6 +329,8 @@ public class ScriptNpc extends PathfinderMob {
 		output.putString("TeamName", teamName);
 		output.putString("Kit", kit);
 		output.putBoolean("AiEnabled", aiEnabled);
+		output.putString("Difficulty", difficultyName);
+		output.putFloat("HealthFraction", this.getHealth() / Math.max(1.0F, this.getMaxHealth()));
 	}
 
 	@Override
@@ -281,6 +346,13 @@ public class ScriptNpc extends PathfinderMob {
 		this.teamName = input.getStringOr("TeamName", "");
 		this.kit = input.getStringOr("Kit", "none");
 		this.aiEnabled = input.getBooleanOr("AiEnabled", true);
+		this.difficultyName = input.getStringOr("Difficulty", "");
+		// Modifiers aren't saved, so re-apply them, then restore health as a fraction of the (new) maximum.
+		applyDifficulty(false);
+		float fraction = input.getFloatOr("HealthFraction", -1.0F);
+		if (fraction >= 0.0F) {
+			this.setHealth(Math.max(0.5F, fraction * this.getMaxHealth()));
+		}
 		refreshGoals();
 		if (!npcName.isEmpty()) {
 			this.setCustomName(Component.literal(npcName));

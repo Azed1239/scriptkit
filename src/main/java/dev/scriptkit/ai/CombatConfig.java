@@ -8,6 +8,9 @@ import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
 import net.fabricmc.loader.api.FabricLoader;
 
 /** config/scriptkit/combat.json. Written with defaults on first run; re-read on server start. */
@@ -23,16 +26,18 @@ public final class CombatConfig {
 	public boolean strafe = true;
 	/** Raise an offhand shield when threatened. */
 	public boolean block = true;
-	/** Archer accuracy from 0.0 (wild) to 1.0 (perfect). */
-	public double archerAccuracy = 0.8;
 	/** Multiplies all NPC damage (melee and arrows). Lower makes fights last longer. */
 	public double damageMultiplier = 1.0;
 	/** If false, NPCs never target players. */
 	public boolean npcsCanHurtPlayers = true;
+	/** Difficulty given to NPCs that have none set (new spawns use this). */
+	public String defaultDifficulty = Difficulty.NORMAL;
+	/** Named difficulty presets. Edit them or add your own; commands accept any name here. */
+	public Map<String, Difficulty> difficulties = Difficulty.defaults();
+	/** Also target players in creative mode (they can't be hurt, but NPCs will chase and swing at them). */
+	public boolean targetCreativePlayers = false;
 	/** Players can damage NPCs on their own team (accidental friendly fire). */
 	public boolean playerFriendlyFire = true;
-	/** Chance (0-1) that a melee NPC jumps before a swing and lands a critical hit on the way down. */
-	public double critChance = 0.35;
 	/** Drop the equipped kit on death, like a player. */
 	public boolean dropKitOnDeath = true;
 	/** Broadcast a vanilla-style death message (also respects the showDeathMessages game rule). */
@@ -54,6 +59,16 @@ public final class CombatConfig {
 
 	public static CombatConfig get() {
 		return instance;
+	}
+
+	/** The preset with this name (case-insensitive), or the default preset if it no longer exists. */
+	public Difficulty difficulty(String name) {
+		Difficulty d = name == null ? null : difficulties.get(name.toLowerCase(Locale.ROOT));
+		return d != null ? d : difficulties.getOrDefault(defaultDifficulty, new Difficulty());
+	}
+
+	public boolean hasDifficulty(String name) {
+		return name != null && difficulties.containsKey(name.toLowerCase(Locale.ROOT));
 	}
 
 	private static Path path() {
@@ -87,9 +102,22 @@ public final class CombatConfig {
 			}
 			loaded.detectionRange = Math.max(1.0, Math.min(128.0, loaded.detectionRange));
 			loaded.retargetIntervalTicks = Math.max(2, loaded.retargetIntervalTicks);
-			loaded.archerAccuracy = Math.max(0.0, Math.min(1.0, loaded.archerAccuracy));
+			Map<String, Difficulty> presets = new LinkedHashMap<>();
+			if (loaded.difficulties != null) {
+				loaded.difficulties.forEach((k, v) -> {
+					if (k != null && v != null) {
+						presets.put(k.toLowerCase(Locale.ROOT), v);
+					}
+				});
+			}
+			Difficulty.defaults().forEach(presets::putIfAbsent);
+			presets.values().forEach(Difficulty::sanitize);
+			loaded.difficulties = presets;
+			if (loaded.defaultDifficulty == null || !presets.containsKey(loaded.defaultDifficulty.toLowerCase(Locale.ROOT))) {
+				loaded.defaultDifficulty = Difficulty.NORMAL;
+			}
+			loaded.defaultDifficulty = loaded.defaultDifficulty.toLowerCase(Locale.ROOT);
 			loaded.damageMultiplier = Math.max(0.0, loaded.damageMultiplier);
-			loaded.critChance = Math.max(0.0, Math.min(1.0, loaded.critChance));
 			loaded.maxBreakHardness = Math.max(0.0, loaded.maxBreakHardness);
 			if (loaded.pillarBlock == null || loaded.pillarBlock.isBlank()) {
 				loaded.pillarBlock = "minecraft:cobblestone";

@@ -5,6 +5,8 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
+import dev.scriptkit.ai.CombatConfig;
+import dev.scriptkit.ai.NpcTargetGoal;
 import dev.scriptkit.npc.KitManager;
 import dev.scriptkit.npc.NpcManager;
 import dev.scriptkit.npc.NpcMessages;
@@ -15,6 +17,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.Vec3;
 
 /** /npc spawn | remove | list | kit  (permission level: gamemaster / op). */
@@ -50,6 +53,18 @@ public final class NpcCommand {
 				.executes(NpcCommand::remove)));
 
 		root.then(Commands.literal("list").executes(NpcCommand::list));
+
+		root.then(Commands.literal("difficulty")
+			.then(Commands.argument("name", StringArgumentType.word())
+				.suggests(NPC_NAMES)
+				.then(Commands.argument("level", StringArgumentType.word())
+					.suggests((ctx, b) -> SharedSuggestionProvider.suggest(CombatConfig.get().difficulties.keySet(), b))
+					.executes(NpcCommand::difficulty))));
+
+		root.then(Commands.literal("info")
+			.then(Commands.argument("name", StringArgumentType.word())
+				.suggests(NPC_NAMES)
+				.executes(NpcCommand::info)));
 
 		root.then(Commands.literal("kit")
 			.then(Commands.argument("name", StringArgumentType.word())
@@ -88,6 +103,7 @@ public final class NpcCommand {
 		npc.setNpcName(name);
 		npc.setSkinName(skin == null ? name : skin);
 		npc.setKit(kitName);
+		npc.applyDifficulty(true);
 		if (team != null) {
 			npc.setTeamName(team);
 		}
@@ -135,6 +151,59 @@ public final class NpcCommand {
 		list.forEach(npc -> npc.setKit(kit));
 		c.getSource().sendSuccess(() -> Component.literal("Applied kit '" + kit + "' to " + list.size() + " NPC(s)."), true);
 		return list.size();
+	}
+
+	private static int difficulty(CommandContext<CommandSourceStack> c) {
+		String level = str(c, "level").toLowerCase();
+		if (!CombatConfig.get().hasDifficulty(level)) {
+			c.getSource().sendFailure(Component.literal("Unknown difficulty '" + level + "'. Available: "
+				+ String.join(", ", CombatConfig.get().difficulties.keySet())));
+			return 0;
+		}
+		List<ScriptNpc> list = targets(c);
+		if (list.isEmpty()) {
+			c.getSource().sendFailure(Component.literal("No matching NPC."));
+			return 0;
+		}
+		list.forEach(npc -> npc.setDifficulty(level));
+		c.getSource().sendSuccess(() -> Component.literal("Set difficulty " + level + " on " + list.size() + " NPC(s)."), true);
+		return list.size();
+	}
+
+	/** Why is this NPC (not) fighting? Shows its state and a verdict for every living entity near it. */
+	private static int info(CommandContext<CommandSourceStack> c) {
+		List<ScriptNpc> found = NpcManager.named(c.getSource().getServer(), str(c, "name"));
+		if (found.isEmpty()) {
+			c.getSource().sendFailure(Component.literal("No NPC with that name."));
+			return 0;
+		}
+		ScriptNpc npc = found.get(0);
+		CombatConfig cfg = CombatConfig.get();
+		LivingEntity target = npc.getTarget();
+		send(c, String.format("%s: AI %s, difficulty %s, team %s, target %s, at %.0f %.0f %.0f", npc.getNpcName(),
+			npc.isAiEnabled() ? "ON" : "OFF", npc.getDifficultyName(), npc.getTeamName().isEmpty() ? "none" : npc.getTeamName(),
+			target == null ? "none" : target.getName().getString(), npc.getX(), npc.getY(), npc.getZ()));
+		if (!npc.isAiEnabled()) {
+			send(c, "  AI is off, so it never fights. Turn it on with /army toggle " + (npc.getTeamName().isEmpty() ? "all" : npc.getTeamName()) + " on");
+			return 1;
+		}
+		List<LivingEntity> nearby = new java.util.ArrayList<>(npc.level().getEntitiesOfClass(LivingEntity.class,
+			npc.getBoundingBox().inflate(cfg.detectionRange * 2.0), e -> e != npc));
+		nearby.sort(java.util.Comparator.comparingDouble(npc::distanceToSqr));
+		if (nearby.isEmpty()) {
+			send(c, "  Nothing living within " + (int) (cfg.detectionRange * 2.0) + " blocks.");
+		}
+		for (LivingEntity e : nearby.stream().limit(8).toList()) {
+			NpcTargetGoal.Reject r = NpcTargetGoal.check(npc, e, cfg);
+			String team = e.getTeam() == null ? "no team" : "team " + e.getTeam().getName();
+			send(c, String.format("  %s (%s, %.0f blocks): %s", e.getName().getString(), team, npc.distanceTo(e),
+				r == NpcTargetGoal.Reject.NONE ? "valid enemy" : "ignored - " + r.reason));
+		}
+		return 1;
+	}
+
+	private static void send(CommandContext<CommandSourceStack> c, String line) {
+		c.getSource().sendSuccess(() -> Component.literal(line), false);
 	}
 
 	private static int list(CommandContext<CommandSourceStack> c) {

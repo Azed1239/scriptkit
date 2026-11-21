@@ -31,7 +31,6 @@ import net.minecraft.world.phys.Vec3;
  * targets come from {@link NpcTargetGoal}.
  */
 public class NpcCombatGoal extends Goal {
-	private static final Identifier DAMAGE_MOD = Identifier.fromNamespaceAndPath(ScriptKitMod.MOD_ID, "damage_multiplier");
 	private static final Identifier CRIT_MOD = Identifier.fromNamespaceAndPath(ScriptKitMod.MOD_ID, "critical_hit");
 	/** Jump this many ticks before the swing is ready so it lands on the way down (jump apex is ~6 ticks). */
 	private static final int CRIT_JUMP_LEAD = 6;
@@ -64,6 +63,7 @@ public class NpcCombatGoal extends Goal {
 	private boolean strafing;
 	private int retreatTicks;
 	private int blockTicks;
+	private int blockDelay;
 	private int lastSeenHurtTime;
 	private int shotCooldown;
 	private int multiplierCheck;
@@ -105,7 +105,7 @@ public class NpcCombatGoal extends Goal {
 		stuckStage = 0;
 		stuckCheck = 20;
 		lastPos = npc.position();
-		applyDamageMultiplier();
+		npc.applyDifficulty(false);
 	}
 
 	@Override
@@ -141,7 +141,7 @@ public class NpcCombatGoal extends Goal {
 		lastSeenHurtTime = npc.hurtTime;
 		if (--multiplierCheck <= 0) {
 			multiplierCheck = 100;
-			applyDamageMultiplier();
+			npc.applyDifficulty(false);
 		}
 		if (npc.getMainHandItem().getItem() instanceof BowItem) {
 			rangedTick(level, target);
@@ -155,6 +155,7 @@ public class NpcCombatGoal extends Goal {
 
 	private void meleeTick(ServerLevel level, LivingEntity target, boolean justHurt) {
 		CombatConfig cfg = CombatConfig.get();
+		Difficulty diff = npc.difficulty();
 		npc.getLookControl().setLookAt(target, 30.0F, 30.0F);
 		double distSq = npc.distanceToSqr(target);
 		// Only hit what we are facing, like a player.
@@ -174,7 +175,7 @@ public class NpcCombatGoal extends Goal {
 			counterWait++;
 		}
 
-		updateShield(hasShield, distSq, justHurt, holdForCounter);
+		updateShield(hasShield, distSq, justHurt, holdForCounter, diff);
 
 		// Jump-crit like a player: sometimes hop just before the swing is ready and strike while
 		// falling. If the jump fails (ceiling, water) the swing goes ahead normally after a short wait.
@@ -183,7 +184,7 @@ public class NpcCombatGoal extends Goal {
 		} else if (!critTried && attackCooldown <= CRIT_JUMP_LEAD && attackCooldown >= 3 && distSq < 9.0
 			&& npc.onGround() && !npc.isInWater() && !npc.isSprinting()) {
 			critTried = true; // one roll per swing
-			if (random.nextFloat() < cfg.critChance) {
+			if (random.nextFloat() < diff.critChance) {
 				npc.getJumpControl().jump();
 				critPending = true;
 				critWait = 0;
@@ -205,7 +206,11 @@ public class NpcCombatGoal extends Goal {
 			if (crit) {
 				setCritBonus(true);
 			}
-			boolean hit = npc.doHurtTarget(level, target);
+			boolean connects = random.nextDouble() < hitChance(diff, target);
+			boolean hit = connects && npc.doHurtTarget(level, target);
+			if (!connects) {
+				npc.playSound(SoundEvents.PLAYER_ATTACK_WEAK, 1.0F, 1.0F);
+			}
 			if (crit) {
 				setCritBonus(false);
 				if (hit) {
@@ -215,7 +220,7 @@ public class NpcCombatGoal extends Goal {
 			if (hit && sprintHit) {
 				sprintKnockback(target);
 			}
-			attackCooldown = attackInterval();
+			attackCooldown = attackInterval(diff);
 		}
 
 		// Path to the target until it is within arm's reach (also covers targets just out of reach above
@@ -244,7 +249,7 @@ public class NpcCombatGoal extends Goal {
 		npc.lookAt(target, 30.0F, 30.0F);
 	}
 
-	private void updateShield(boolean hasShield, double distSq, boolean justHurt, boolean holdForCounter) {
+	private void updateShield(boolean hasShield, double distSq, boolean justHurt, boolean holdForCounter, Difficulty diff) {
 		if (!hasShield) {
 			if (npc.isUsingItem() && npc.getUsedItemHand() == InteractionHand.OFF_HAND) {
 				npc.stopUsingItem();
@@ -265,16 +270,25 @@ public class NpcCombatGoal extends Goal {
 			attackCooldown++; // brief hesitation
 		}
 		boolean wantBlock = threatened && (attackCooldown > 1 || holdForCounter);
+		if (blockDelay > 0) {
+			blockDelay--;
+			wantBlock = false; // fumbled the shield: no block until the delay is over
+		}
 		if (wantBlock && !npc.isUsingItem()) {
-			npc.startUsingItem(InteractionHand.OFF_HAND);
+			// Skill check each time it goes to raise the shield; a failure means a short fumble.
+			if (random.nextDouble() < diff.blockSkill) {
+				npc.startUsingItem(InteractionHand.OFF_HAND);
+			} else {
+				blockDelay = 8 + random.nextInt(10);
+			}
 		} else if (!wantBlock && npc.isUsingItem() && npc.getUsedItemHand() == InteractionHand.OFF_HAND) {
 			npc.stopUsingItem();
 		}
 	}
 
 	/** Ticks between swings from the held weapon's attack speed (fist 4.0, sword 1.6, axe ~0.9), plus jitter. */
-	private int attackInterval() {
-		double speed = Math.max(0.5, npc.getAttributeValue(Attributes.ATTACK_SPEED));
+	private int attackInterval(Difficulty diff) {
+		double speed = Math.max(0.5, npc.getAttributeValue(Attributes.ATTACK_SPEED)) * diff.attackSpeed;
 		return (int) Math.ceil(20.0 / speed) + random.nextInt(3);
 	}
 
@@ -347,7 +361,8 @@ public class NpcCombatGoal extends Goal {
 		ItemStack ammo = new ItemStack(Items.ARROW);
 		AbstractArrow arrow = ProjectileUtil.getMobArrow(npc, ammo, power, bow);
 		arrow.pickup = AbstractArrow.Pickup.DISALLOWED;
-		arrow.setBaseDamage(2.0 * cfg.damageMultiplier);
+		Difficulty diff = npc.difficulty();
+		arrow.setBaseDamage(2.0 * cfg.damageMultiplier * diff.damage);
 
 		double dist = npc.distanceTo(target);
 		double lead = Math.min(dist / ARROW_VELOCITY, 20.0);
@@ -356,7 +371,7 @@ public class NpcCombatGoal extends Goal {
 		double dz = target.getZ() + motion.z * lead - npc.getZ();
 		double dy = target.getY(0.3333) - arrow.getY();
 		double horizontal = Math.sqrt(dx * dx + dz * dz);
-		float inaccuracy = (float) ((1.0 - cfg.archerAccuracy) * 10.0);
+		float inaccuracy = (float) ((1.0 - diff.archerAccuracy) * 10.0);
 		Projectile.spawnProjectileUsingShoot(arrow, level, ammo, dx, dy + horizontal * 0.2, dz, ARROW_VELOCITY * power, inaccuracy);
 		npc.playSound(SoundEvents.SKELETON_SHOOT, 1.0F, 1.0F / (random.nextFloat() * 0.4F + 0.8F));
 	}
@@ -414,6 +429,15 @@ public class NpcCombatGoal extends Goal {
 		if (npc.getNavigation().isInProgress()) {
 			npc.getNavigation().setSpeedModifier(run ? ScriptNpc.SPRINT_PATH_SPEED : 1.0);
 		}
+	}
+
+	/** Probability that a swing lands: the configured accuracy, lowered by 15% against a moving target. */
+	private static double hitChance(Difficulty diff, LivingEntity target) {
+		double chance = diff.meleeAccuracy;
+		if (target.getDeltaMovement().horizontalDistanceSqr() > 0.1 * 0.1) {
+			chance *= 0.85;
+		}
+		return chance;
 	}
 
 	/** +50% attack damage for one swing (vanilla critical hit), on top of the damage multiplier. */
@@ -496,22 +520,6 @@ public class NpcCombatGoal extends Goal {
 			npc.ignore(target, 100);
 			npc.setTarget(null);
 			stuckStage = 0;
-		}
-	}
-
-	private void applyDamageMultiplier() {
-		AttributeInstance inst = npc.getAttribute(Attributes.ATTACK_DAMAGE);
-		if (inst == null) {
-			return;
-		}
-		double amount = CombatConfig.get().damageMultiplier - 1.0;
-		AttributeModifier current = inst.getModifier(DAMAGE_MOD);
-		if (current != null && current.amount() == amount) {
-			return;
-		}
-		inst.removeModifier(DAMAGE_MOD);
-		if (amount != 0.0) {
-			inst.addTransientModifier(new AttributeModifier(DAMAGE_MOD, amount, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
 		}
 	}
 }

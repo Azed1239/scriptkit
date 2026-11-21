@@ -46,15 +46,26 @@ public final class ArmyCommand {
 			.then(Commands.argument("count", IntegerArgumentType.integer(1))
 				.then(Commands.argument("team", StringArgumentType.word())
 					.suggests(TEAMS)
-					.executes(c -> spawn(c, null, null, null))
+					.executes(c -> spawn(c, null, null, null, null))
 					.then(Commands.argument("kit", StringArgumentType.word())
 						.suggests(KITS)
-						.executes(c -> spawn(c, str(c, "kit"), null, null))
+						.executes(c -> spawn(c, str(c, "kit"), null, null, null))
 						.then(Commands.argument("skin", StringArgumentType.word())
-							.executes(c -> spawn(c, str(c, "kit"), str(c, "skin"), null))
+							.executes(c -> spawn(c, str(c, "kit"), str(c, "skin"), null, null))
 							.then(Commands.argument("formation", StringArgumentType.word())
 								.suggests(FORMATIONS)
-								.executes(c -> spawn(c, str(c, "kit"), str(c, "skin"), str(c, "formation")))))))));
+								.executes(c -> spawn(c, str(c, "kit"), str(c, "skin"), str(c, "formation"), null))
+								.then(Commands.argument("difficulty", StringArgumentType.word())
+									.suggests(DIFFICULTIES)
+									.executes(c -> spawn(c, str(c, "kit"), str(c, "skin"), str(c, "formation"), str(c, "difficulty"))))))))));
+
+		root.then(Commands.literal("difficulty")
+			.executes(ArmyCommand::difficultyHelp)
+			.then(Commands.argument("team", StringArgumentType.word())
+				.suggests(TEAMS)
+				.then(Commands.argument("level", StringArgumentType.word())
+					.suggests(DIFFICULTIES)
+					.executes(ArmyCommand::difficulty))));
 
 		root.then(Commands.literal("toggle")
 			.then(Commands.argument("team", StringArgumentType.word())
@@ -90,7 +101,10 @@ public final class ArmyCommand {
 		return StringArgumentType.getString(c, arg);
 	}
 
-	private static int spawn(CommandContext<CommandSourceStack> c, String kit, String skin, String formationName) {
+	private static final SuggestionProvider<CommandSourceStack> DIFFICULTIES =
+		(ctx, b) -> SharedSuggestionProvider.suggest(CombatConfig.get().difficulties.keySet(), b);
+
+	private static int spawn(CommandContext<CommandSourceStack> c, String kit, String skin, String formationName, String difficulty) {
 		CommandSourceStack src = c.getSource();
 		int count = IntegerArgumentType.getInteger(c, "count");
 		String team = str(c, "team");
@@ -113,7 +127,12 @@ public final class ArmyCommand {
 			src.sendFailure(Component.literal("Unknown formation (use circle or grid)."));
 			return 0;
 		}
-		int spawned = ArmyManager.spawn(src.getLevel(), src.getPosition(), src.getRotation().y, count, team, kitName, skin, formation);
+		if (difficulty != null && !CombatConfig.get().hasDifficulty(difficulty)) {
+			src.sendFailure(Component.literal("Unknown difficulty '" + difficulty + "'. Available: "
+				+ String.join(", ", CombatConfig.get().difficulties.keySet())));
+			return 0;
+		}
+		int spawned = ArmyManager.spawn(src.getLevel(), src.getPosition(), src.getRotation().y, count, team, kitName, skin, formation, difficulty);
 		src.sendSuccess(() -> Component.literal("Spawned " + spawned + " NPC(s) on team '" + team + "'."), true);
 		src.sendSystemMessage(blocksHint());
 		return spawned;
@@ -187,6 +206,32 @@ public final class ArmyCommand {
 		return n;
 	}
 
+	private static int difficulty(CommandContext<CommandSourceStack> c) {
+		String level = str(c, "level").toLowerCase();
+		if (!CombatConfig.get().hasDifficulty(level)) {
+			c.getSource().sendFailure(Component.literal("Unknown difficulty '" + level + "'. Available: "
+				+ String.join(", ", CombatConfig.get().difficulties.keySet())));
+			return 0;
+		}
+		int n = ArmyManager.setDifficulty(c.getSource().getServer(), str(c, "team"), level);
+		if (n == 0) {
+			c.getSource().sendFailure(Component.literal("No NPCs on that team."));
+			return 0;
+		}
+		c.getSource().sendSuccess(() -> Component.literal("Set difficulty " + level + " on " + n + " NPC(s)."), true);
+		return n;
+	}
+
+	/** /army difficulty with no arguments: list the presets and what they do. */
+	private static int difficultyHelp(CommandContext<CommandSourceStack> c) {
+		CombatConfig cfg = CombatConfig.get();
+		c.getSource().sendSuccess(() -> Component.literal("Difficulties (default: " + cfg.defaultDifficulty
+			+ "). Use /army difficulty <team|all> <level>, or add one to /army spawn."), false);
+		cfg.difficulties.forEach((name, d) ->
+			c.getSource().sendSuccess(() -> Component.literal("- " + name + ": " + d.summary()), false));
+		return cfg.difficulties.size();
+	}
+
 	private static int list(CommandContext<CommandSourceStack> c) {
 		Map<String, int[]> counts = ArmyManager.counts(c.getSource().getServer());
 		if (counts.isEmpty()) {
@@ -194,9 +239,11 @@ public final class ArmyCommand {
 			return 0;
 		}
 		int total = 0;
+		Map<String, String> diffs = ArmyManager.difficulties(c.getSource().getServer());
 		for (Map.Entry<String, int[]> e : counts.entrySet()) {
 			total += e.getValue()[0];
-			String line = String.format("- %s: %d NPC(s), AI on for %d", e.getKey(), e.getValue()[0], e.getValue()[1]);
+			String line = String.format("- %s: %d NPC(s), AI on for %d, difficulty %s", e.getKey(), e.getValue()[0], e.getValue()[1],
+				diffs.getOrDefault(e.getKey(), "?"));
 			c.getSource().sendSuccess(() -> Component.literal(line), false);
 		}
 		int t = total;
