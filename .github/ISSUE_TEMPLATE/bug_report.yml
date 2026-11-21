@@ -1,0 +1,51 @@
+name: Bug report
+description: Something in ScriptKit is broken or behaves wrongly
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The exact commands or clicks, for example "/army spawn 10 red", then ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: ScriptKit version
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where did it happen?
+      options:
+        - Singleplayer
+        - Dedicated server
+        - LAN
+    validations:
+      required: true
+  - type: input
+    id: loader
+    attributes:
+      label: Minecraft, Fabric Loader and Fabric API versions
+      placeholder: "1.21.11, Loader 0.20.1, API 0.141.6+1.21.11"
+  - type: textarea
+    id: log
+    attributes:
+      label: Log or crash report
+      description: Paste the relevant part of logs/latest.log, or the crash report. Use a link (pastebin, gist) if it is long.
+      render: text
+  - type: textarea
+    id: other
+    attributes:
+      label: Other mods
+      description: Any other mods installed, especially ones that change mobs, AI or combat.

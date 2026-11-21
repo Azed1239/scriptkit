@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question or help using ScriptKit
+    url: https://github.com/Azed1239/scriptkit#readme
+    about: Read the README and the in-game tutorial (press K, then Tutorial) first.

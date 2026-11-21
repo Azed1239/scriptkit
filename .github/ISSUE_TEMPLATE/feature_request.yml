@@ -1,0 +1,21 @@
+name: Feature request
+description: Suggest something ScriptKit should do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: What are you trying to do?
+      description: Describe the scene or video you want to make, not just the feature. Knowing the goal helps design the right thing.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How could ScriptKit help?
+      description: Your idea for a command, item or menu option, if you have one.
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What do you do today?
+      description: Any workaround you use now.

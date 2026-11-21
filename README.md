@@ -241,6 +241,15 @@ Toggle armies with a key instead of typing `/army toggle`. You need operator (ga
 - The first time you use `/army toggle` in a session, chat mentions the keybind.
 - The server ignores more than 4 keybind packets per second per player.
 
+## Feedback and bugs
+
+Found a bug or have an idea? [Open an issue](https://github.com/Azed1239/scriptkit/issues/new/choose). For a bug, please include what you typed or clicked, the ScriptKit version, whether it was singleplayer or a server, and the relevant part of `logs/latest.log` (or the crash report). For a feature request, describe the scene you are trying to make; that helps more than the feature name.
+
+**Known limitations in 1.0.0**
+- Minecraft 1.21.11 only.
+- Armies and fights only: no scripted scenes (timed movement, dialogue, recording) yet.
+- Tested in singleplayer and on a dev server, not yet on large public servers. Hundreds of NPCs fighting at once, and NPC mining and building, are the likeliest places to find problems.
+
 ## Development
 
 - `./gradlew test` runs unit tests for key-combo matching, `keybinds.json` parsing, key names and the name generator.

@@ -8,6 +8,11 @@
 		"ScriptKit contributors"
 	],
 	"license": "MIT",
+	"contact": {
+		"homepage": "https://github.com/Azed1239/scriptkit",
+		"sources": "https://github.com/Azed1239/scriptkit",
+		"issues": "https://github.com/Azed1239/scriptkit/issues"
+	},
 	"icon": "assets/scriptkit/icon.png",
 	"environment": "*",
 	"accessWidener": "scriptkit.accesswidener",
