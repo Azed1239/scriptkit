@@ -64,6 +64,9 @@ public class NpcCombatGoal extends Goal {
 	private int retreatTicks;
 	private int blockTicks;
 	private int blockDelay;
+	private int hopBurstTicks;
+	private int hopPauseTicks;
+	private int hopLandingDelay;
 	private int lastSeenHurtTime;
 	private int shotCooldown;
 	private int multiplierCheck;
@@ -440,6 +443,40 @@ public class NpcCombatGoal extends Goal {
 		return chance;
 	}
 
+	/**
+	 * Bunny hopping while sprinting after an enemy. Only NPCs with the bunny-hopper trait do it, and even
+	 * they alternate between hopping bursts and plain running, so a group looks like a mix of styles.
+	 * (A sprint jump keeps vanilla's small forward boost, as it does for a player.)
+	 */
+	private void bunnyHop() {
+		if (!npc.isBunnyHopper() || !npc.isSprinting()) {
+			hopBurstTicks = 0;
+			return;
+		}
+		if (hopPauseTicks > 0) {
+			hopPauseTicks--;
+			return;
+		}
+		if (hopBurstTicks <= 0) {
+			// Start a new burst (or a stretch of plain running) every few seconds.
+			if (random.nextFloat() < 0.75F) {
+				hopBurstTicks = 40 + random.nextInt(80);
+			} else {
+				hopPauseTicks = 30 + random.nextInt(60);
+				return;
+			}
+		}
+		hopBurstTicks--;
+		if (npc.onGround() && !npc.isInWater()) {
+			if (hopLandingDelay > 0) {
+				hopLandingDelay--;
+			} else {
+				npc.getJumpControl().jump();
+				hopLandingDelay = random.nextInt(3);
+			}
+		}
+	}
+
 	/** +50% attack damage for one swing (vanilla critical hit), on top of the damage multiplier. */
 	private void setCritBonus(boolean on) {
 		AttributeInstance inst = npc.getAttribute(Attributes.ATTACK_DAMAGE);
@@ -494,6 +531,7 @@ public class NpcCombatGoal extends Goal {
 			setRunning(run);
 			npc.getNavigation().moveTo(target, run ? ScriptNpc.SPRINT_PATH_SPEED : 1.0);
 		}
+		bunnyHop();
 		if (--stuckCheck > 0) {
 			return;
 		}

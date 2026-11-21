@@ -82,7 +82,9 @@ With AI on, NPCs fight (see Combat below). With AI off they stand still and run 
 With AI on, each NPC:
 
 - **Targets** (shown by `/npc info`) the nearest living entity on a *different* scoreboard team within `detectionRange`: other NPCs and players. Teammates, spectators and creative players (unless `targetCreativePlayers`) are never targeted. Players on no team are neutral: every army targets them (turn `targetTeamlessPlayers` off in combat.json to let a teamless player walk among armies while filming). Enemies farther than `detectionRange` are not noticed either: when one army wipes out another, the survivors go idle unless another enemy is within range. To fight for an army, join its team (Team tab or `/team join`); to fight them all, stay neutral.
-- **Hostile mobs:** zombies, skeletons, creepers, spiders and slimes attack NPCs the way they attack players (creepers swell and explode next to them), so mobs can hunt and kill NPCs. NPCs with AI on fight back, but players and enemy NPCs always come first: an NPC only picks a hostile mob when no player or enemy NPC is in range, and drops it as soon as one appears. Endermen are left alone.
+- **Hostile mobs:** zombies, skeletons, creepers, spiders and slimes attack NPCs the way they attack players (creepers swell and explode next to them), so mobs can hunt and kill NPCs. NPCs do not fight back against mobs by default; set `npcsFightHostileMobs` to true and they will, but only when no player or enemy NPC is in range. Endermen are left alone.
+- **Regroup:** with no target left, an NPC walks back to its formation spot (where it was spawned, or where its AI was last switched on) instead of standing where the fight ended; far trips are run. It gives up for a few seconds if the way back is blocked.
+- **Bunny hopping:** about half of all NPCs (`bunnyHopChance`) are bunny hoppers: while sprinting at an enemy they hop in bursts, with stretches of plain running in between. The rest never hop, so a group looks like a mix.
 - **Melee:** chases with vanilla pathfinding (sprinting when far), swings at the weapon's real attack speed (fists fast, swords medium, axes slow), and uses the weapon's damage and knockback. In melee range it circle-strafes, changing direction at random, and sometimes steps back after being hit.
 - **Critical hits:** sometimes (`critChance`) they hop just before a swing and strike on the way down, like a player's jump-crit: 1.5x damage, crit particles and sound.
 - **Shield:** with a shield in the offhand it keeps the shield up while an enemy is close, lowers it only to swing, and times its swing to land right after an NPC opponent's attack.
@@ -137,7 +139,9 @@ Against a player in full enchanted netherite (the `god` kit) a normal NPC lands 
 | `strafe` | true | Circle-strafe and step back in melee. |
 | `block` | true | Use offhand shields. |
 | `hostileMobsAttackNpcs` | true | Hostile mobs attack NPCs. |
-| `npcsFightHostileMobs` | true | NPCs with AI on fight hostile mobs (after players and enemy NPCs). |
+| `npcsFightHostileMobs` | false | NPCs with AI on fight hostile mobs (after players and enemy NPCs). Off: mobs hunt NPCs but NPCs ignore mobs. |
+| `regroupAfterFight` | true | With no target left, NPCs walk back to their formation spot. |
+| `bunnyHopChance` | 0.5 | Fraction of NPCs that are bunny hoppers (they hop in bursts while sprinting at an enemy). |
 | `targetTeamlessPlayers` | true | Players on no team are neutral: every army attacks them. |
 | `targetCreativePlayers` | false | Also chase and swing at players in creative mode (they can't be hurt). |
 | `defaultDifficulty` | normal | Difficulty for NPCs that don't have one set. |

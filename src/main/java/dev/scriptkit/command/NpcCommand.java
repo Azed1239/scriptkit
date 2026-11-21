@@ -104,6 +104,7 @@ public final class NpcCommand {
 		npc.setSkinName(skin == null ? name : skin);
 		npc.setKit(kitName);
 		npc.applyDifficulty(true);
+		npc.setHome(pos);
 		if (team != null) {
 			npc.setTeamName(team);
 		}

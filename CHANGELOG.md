@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Regrouping, bunny hopping, and NPCs ignoring mobs
+- NPCs no longer attack mobs by default (`npcsFightHostileMobs` now defaults to false; hostile mobs still hunt NPCs). If you have an existing `combat.json` with it set to true, change it to false.
+- Regrouping: with no target left, NPCs walk back to their formation spot (spawn position, or where their AI was last switched on; saved with the NPC), running if it is far, and give up for a few seconds if blocked. `regroupAfterFight` turns it off.
+- Bunny hopping: about half of NPCs (`bunnyHopChance`) are hoppers that hop in bursts while sprinting at an enemy, with stretches of plain running between; the others never hop. A sprint jump keeps vanilla's small forward boost, as it does for a player.
+
 ### Teams, neutral players and the tutorial
 - Players on no team are now neutral: every army attacks them, and the armies still fight each other (`targetTeamlessPlayers`, on by default; creative and spectator players are still ignored). `/npc info` explains the case when it is off.
 - New Team tab in the menu: see your team, join any team, create one, or go neutral. Server-checked like the other edits (operator permission), with the usual team color and friendly-fire setting for new teams.

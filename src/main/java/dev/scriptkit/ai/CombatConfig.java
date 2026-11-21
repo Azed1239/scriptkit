@@ -34,12 +34,16 @@ public final class CombatConfig {
 	public String defaultDifficulty = Difficulty.NORMAL;
 	/** Named difficulty presets. Edit them or add your own; commands accept any name here. */
 	public Map<String, Difficulty> difficulties = Difficulty.defaults();
+	/** With no target left, NPCs walk back to the formation spot they spawned at. */
+	public boolean regroupAfterFight = true;
+	/** Fraction (0-1) of NPCs that are bunny hoppers: while sprinting after an enemy they hop in bursts. The rest just run. */
+	public double bunnyHopChance = 0.5;
 	/** Players on no team are neutral: every army treats them as an enemy. Turn off to let them walk among armies. */
 	public boolean targetTeamlessPlayers = true;
 	/** Hostile mobs (zombies, skeletons, creepers, spiders...) attack NPCs the way they attack players. */
 	public boolean hostileMobsAttackNpcs = true;
-	/** NPCs with AI on treat hostile mobs as enemies and fight back, whatever team they are on. */
-	public boolean npcsFightHostileMobs = true;
+	/** NPCs with AI on treat hostile mobs as enemies and fight them (after players and enemy NPCs). Off by default: mobs hunt NPCs but NPCs ignore mobs. */
+	public boolean npcsFightHostileMobs = false;
 	/** Also target players in creative mode (they can't be hurt, but NPCs will chase and swing at them). */
 	public boolean targetCreativePlayers = false;
 	/** Players can damage NPCs on their own team (accidental friendly fire). */
@@ -125,6 +129,7 @@ public final class CombatConfig {
 			loaded.defaultDifficulty = loaded.defaultDifficulty.toLowerCase(Locale.ROOT);
 			loaded.damageMultiplier = Math.max(0.0, loaded.damageMultiplier);
 			loaded.maxBreakHardness = Math.max(0.0, loaded.maxBreakHardness);
+			loaded.bunnyHopChance = Math.max(0.0, Math.min(1.0, loaded.bunnyHopChance));
 			if (loaded.pillarBlock == null || loaded.pillarBlock.isBlank()) {
 				loaded.pillarBlock = "minecraft:cobblestone";
 			}

@@ -88,6 +88,7 @@ public final class ArmyManager {
 			npc.setSkinName(skin != null ? skin : randomSkin(cfg, rnd));
 			npc.setKit(kit);
 			npc.setTeamName(team);
+			npc.setHome(new Vec3(x, y, z));
 			if (difficulty != null) {
 				npc.setDifficulty(difficulty);
 			} else {

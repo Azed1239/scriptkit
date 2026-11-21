@@ -60,6 +60,11 @@ public class ScriptNpc extends PathfinderMob {
 	/** Name of this NPC's difficulty preset; empty means the config default. */
 	private String difficultyName = "";
 	private boolean aiEnabled = true;
+	/** Formation spot to regroup at (where the NPC was spawned, or where its AI was last switched on). */
+	private double homeX;
+	private double homeY;
+	private double homeZ;
+	private boolean hasHome;
 	private UUID ignoredTarget;
 	private long ignoreUntil;
 	private int attackCooldown = Integer.MAX_VALUE;
@@ -299,8 +304,31 @@ public class ScriptNpc extends PathfinderMob {
 	public void setAiEnabled(boolean aiEnabled) {
 		if (this.aiEnabled != aiEnabled) {
 			this.aiEnabled = aiEnabled;
+			if (aiEnabled && !this.level().isClientSide()) {
+				setHome(this.position()); // wherever it stands when switched on becomes its formation spot
+			}
 			refreshGoals();
 		}
+	}
+
+	public void setHome(net.minecraft.world.phys.Vec3 pos) {
+		this.homeX = pos.x;
+		this.homeY = pos.y;
+		this.homeZ = pos.z;
+		this.hasHome = true;
+	}
+
+	public boolean hasHome() {
+		return hasHome;
+	}
+
+	public net.minecraft.world.phys.Vec3 getHome() {
+		return new net.minecraft.world.phys.Vec3(homeX, homeY, homeZ);
+	}
+
+	/** Whether this NPC is a bunny hopper (a fixed trait of the NPC): about bunnyHopChance of all NPCs are. */
+	public boolean isBunnyHopper() {
+		return Math.floorMod(this.getUUID().hashCode(), 100) < (int) Math.round(CombatConfig.get().bunnyHopChance * 100);
 	}
 
 	private void applyTeam() {
@@ -331,6 +359,10 @@ public class ScriptNpc extends PathfinderMob {
 		output.putBoolean("AiEnabled", aiEnabled);
 		output.putString("Difficulty", difficultyName);
 		output.putFloat("HealthFraction", this.getHealth() / Math.max(1.0F, this.getMaxHealth()));
+		output.putBoolean("HasHome", hasHome);
+		output.putDouble("HomeX", homeX);
+		output.putDouble("HomeY", homeY);
+		output.putDouble("HomeZ", homeZ);
 	}
 
 	@Override
@@ -349,6 +381,13 @@ public class ScriptNpc extends PathfinderMob {
 		this.difficultyName = input.getStringOr("Difficulty", "");
 		// Modifiers aren't saved, so re-apply them, then restore health as a fraction of the (new) maximum.
 		applyDifficulty(false);
+		this.hasHome = input.getBooleanOr("HasHome", false);
+		this.homeX = input.getDoubleOr("HomeX", 0.0);
+		this.homeY = input.getDoubleOr("HomeY", 0.0);
+		this.homeZ = input.getDoubleOr("HomeZ", 0.0);
+		if (!hasHome) {
+			setHome(this.position()); // NPCs saved before regrouping existed: regroup where they were loaded
+		}
 		float fraction = input.getFloatOr("HealthFraction", -1.0F);
 		if (fraction >= 0.0F) {
 			this.setHealth(Math.max(0.5F, fraction * this.getMaxHealth()));

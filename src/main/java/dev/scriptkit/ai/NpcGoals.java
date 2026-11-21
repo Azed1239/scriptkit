@@ -19,7 +19,9 @@ public final class NpcGoals {
 	public static void register(ScriptNpc npc) {
 		npc.getGoalSelector().addGoal(0, new FloatGoal(npc));
 		npc.getGoalSelector().addGoal(2, new NpcCombatGoal(npc));
-		// Idle when there is no target: stand in place and look around. No wandering, so formations hold.
+		// No target left: walk back to the formation spot.
+		npc.getGoalSelector().addGoal(4, new NpcRegroupGoal(npc));
+		// Once regrouped: stand in place and look around. No wandering, so formations hold.
 		npc.getGoalSelector().addGoal(7, new LookAtPlayerGoal(npc, Player.class, 8.0F));
 		npc.getGoalSelector().addGoal(8, new RandomLookAroundGoal(npc));
 
