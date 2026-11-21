@@ -1,8 +1,21 @@
 # ScriptKit
 
+![ScriptKit](docs/banner.png)
+
 A free, open-source (MIT) Fabric mod for scripted Minecraft SMPs: choreographed NPCs and recordable scenes for filming videos on your own server.
 
-**Status:** Phase 6 – NPCs, armies and teams, combat AI, keybinds, in-game menu, tutorial.
+**Version 1.0.0.** Requires Minecraft 1.21.11, Fabric Loader 0.20.1+ and Fabric API. Install the jar on the server and (for the menu, keybinds, ghost preview and skins) on your client too.
+
+## Features
+
+- **Player-like NPCs**: lightweight entities that look like players (random or chosen skins, procedural names like `PingAbuse`), that drop their gear on death like a real player.
+- **Armies and teams**: spawn whole armies in a circle, grid, line, column, wedge or scatter; neutral players are fair game for every army; join a team from the menu.
+- **Combat AI**: melee, bows, shields, crits, block breaking and placing, regrouping after fights, bunny hopping, per-army difficulty presets.
+- **Command Stick**: select an army from afar, change its formation with left-click, see a ghost preview and place it with right-click, then press G to start the fight.
+- **Kits**: editable gear sets you can give to NPCs or yourself.
+- **Keybinds and menu** (K): difficulty, kits, team, keybinds and a guide, plus an onboarding tutorial.
+- **Server friendly**: operator permissions, rate-limited and validated packets, plain JSON configs in `config/scriptkit/`.
+
 
 ## Target
 
@@ -172,7 +185,7 @@ Press **K** (rebindable in Controls > ScriptKit) or run `/scriptkit menu` to ope
 | **Team** | See your team, join any team, create a new one, or go neutral (no team). On a team you fight for it and armies on other teams attack you; neutral, every army attacks you and they fight each other too. |
 | **Keybinds** | Edit your key combos without a text editor: choose the action and team, click the key box and press the combo, then Save & reload. Entries the editor doesn't understand are kept untouched. A button opens the vanilla Controls screen for the G key, the team slots and the menu key. This tab only changes your own `keybinds.json`. |
 
-| **Tutorial** | A six-step getting-started checklist (spawn two armies, toggle the AI, change a difficulty, make a kit, set a key combo, join a team). Each step has a button that does it or opens the right tab, and ticks itself off when it detects you did it. Open it with `/scriptkit tutorial` or `/sktutorial`; the first time you join a world as an operator, one chat line offers it (once, never blocking). Progress is kept in `config/scriptkit/tutorial.json`. |
+| **Tutorial** | A nine-lesson course (spawn an army, start the fight, difficulty, kits, formations, the Command Stick, teams, keybinds, cleanup). Each lesson explains the idea in plain words and shows the exact commands to type, with what each part means, a Copy button and a Run button, and ticks itself off when it detects you did it. Open it with `/scriptkit tutorial` or `/sktutorial`; the first time you join a world as an operator, a small pop-up offers it (once; it never pauses the game). Progress is kept in `config/scriptkit/tutorial.json`. |
 
 Edits are validated on the server (items and enchantments must exist, levels 1-255, names use letters, digits, `-` and `_`) and saved to `combat.json` and `kits.json`, so they survive restarts and can still be hand-edited.
 

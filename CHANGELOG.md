@@ -1,6 +1,11 @@
 # Changelog
 
-## [Unreleased]
+## [1.0.0]
+
+First release: NPCs, armies and teams, combat AI with difficulties, kits, keybinds, the in-game menu and tutorial, and the Command Stick with formations and ghost preview. Details below.
+
+### Tutorial
+- The tutorial is now a real course: nine lessons with a lesson list and a teaching pane that shows the actual commands (`/army spawn 10 blue archer steve wedge`, `/army toggle all`, `/army difficulty red nightmare`, `/army kit`, `/army formation`, the stick controls, cleanup commands), what each argument means, Copy and Run buttons, Back/Next, and links to the right tabs. The first-join offer is an on-screen pop-up instead of a chat line.
 
 ### Command Stick
 - Formations with the stick: left-click cycles the selected army's formation (circle, grid, line, column, wedge, scatter) and Shift+left-click cycles the spacing (1, 1.5, 2, 3, 4). The ghost preview re-shapes at once, turns with your aim, and right-click places the army in that formation. NPCs keep a stable slot while you cycle. New C2S packet `stick_cycle`, server-checked (operator, holding the stick); ghost packet gains a `rotates` flag. Pure layout maths in `Formations` with unit tests.
@@ -18,7 +23,7 @@
 ### Teams, neutral players and the tutorial
 - Players on no team are now neutral: every army attacks them, and the armies still fight each other (`targetTeamlessPlayers`, on by default; creative and spectator players are still ignored). `/npc info` explains the case when it is off.
 - New Team tab in the menu: see your team, join any team, create one, or go neutral. Server-checked like the other edits (operator permission), with the usual team color and friendly-fire setting for new teams.
-- New Tutorial tab: a six-step checklist with buttons that do each step and detect when it is done; progress saved in `tutorial.json`. `/scriptkit tutorial` and the client command `/sktutorial` open it, and a one-time chat line offers it the first time an operator joins a world. Nothing pops up at launch.
+- New Tutorial tab: a six-step checklist with buttons that do each step and detect when it is done; progress saved in `tutorial.json`. `/scriptkit tutorial` and the client command `/sktutorial` open it, and a one-time on-screen pop-up (not a chat line, never pauses the game) offers it the first time an operator joins a world.
 - The menu's open packet can carry a starting tab; five tabs fit down to a 427-pixel-wide GUI.
 
 ### Mobs and NPCs

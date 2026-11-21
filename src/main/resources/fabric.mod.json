@@ -3,11 +3,12 @@
 	"id": "scriptkit",
 	"version": "${version}",
 	"name": "ScriptKit",
-	"description": "Tools for scripted Minecraft SMPs: choreographed NPCs and recordable scenes for filming on your own server.",
+	"description": "Tools for scripted SMPs: player-like NPC armies, teams, combat AI, a Command Stick for arranging battles, keybinds and an in-game menu.",
 	"authors": [
 		"ScriptKit contributors"
 	],
 	"license": "MIT",
+	"icon": "assets/scriptkit/icon.png",
 	"environment": "*",
 	"accessWidener": "scriptkit.accesswidener",
 	"entrypoints": {
