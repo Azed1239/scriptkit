@@ -27,6 +27,11 @@ import net.minecraft.world.scores.Scoreboard;
  */
 public final class ArmyManager {
 	public static final String ALL = "all";
+	/**
+	 * True after "toggle all" switched every army off: armies spawned from now on start frozen too, so you
+	 * can pose a scene without them wandering off. Reset when the server stops, or by toggling all on.
+	 */
+	private static volatile boolean spawnFrozen;
 	private static final ChatFormatting[] PALETTE = {
 		ChatFormatting.RED, ChatFormatting.BLUE, ChatFormatting.GREEN, ChatFormatting.YELLOW,
 		ChatFormatting.AQUA, ChatFormatting.LIGHT_PURPLE, ChatFormatting.GOLD, ChatFormatting.DARK_GREEN,
@@ -46,6 +51,14 @@ public final class ArmyManager {
 	}
 
 	private ArmyManager() {}
+
+	public static boolean spawnsFrozen() {
+		return spawnFrozen;
+	}
+
+	public static void resetSpawnState() {
+		spawnFrozen = false;
+	}
 
 	/** Gets the scoreboard team, creating it (with a stable color and the configured friendly-fire flag) if missing. */
 	public static PlayerTeam ensureTeam(Scoreboard scoreboard, String name) {
@@ -94,6 +107,9 @@ public final class ArmyManager {
 			} else {
 				npc.applyDifficulty(true);
 			}
+			if (spawnFrozen) {
+				npc.setAiEnabled(false);
+			}
 			if (level.addFreshEntity(npc)) {
 				spawned++;
 			}
@@ -118,9 +134,15 @@ public final class ArmyManager {
 	public static AiResult setAi(MinecraftServer server, String team, Boolean state) {
 		List<ScriptNpc> npcs = select(server, team);
 		if (npcs.isEmpty()) {
-			return new AiResult(0, false);
+			if (team.equalsIgnoreCase(ALL)) {
+				spawnFrozen = state != null ? !state : !spawnFrozen; // no armies yet: still decides how the next ones start
+			}
+			return new AiResult(0, !spawnFrozen && team.equalsIgnoreCase(ALL));
 		}
 		boolean enable = state != null ? state : npcs.stream().noneMatch(ScriptNpc::isAiEnabled);
+		if (team.equalsIgnoreCase(ALL)) {
+			spawnFrozen = !enable; // remembered, so new armies match
+		}
 		for (ScriptNpc npc : npcs) {
 			npc.setAiEnabled(enable);
 		}

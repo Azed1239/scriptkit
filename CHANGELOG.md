@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.1]
+
+Patch release.
+
+### Frozen NPCs
+- `/army toggle all off` (or G) now also makes armies spawned afterwards start frozen, with a chat note saying so; `toggle all on` goes back to normal. It works even before any army exists. The state resets when the server stops. Toggling a single team doesn't change it.
+- Switching an NPC's AI off now freezes it completely (vanilla "no AI"): it no longer turns its head or body towards players, which made it impossible to take screenshots of a posed army. NPCs saved with AI off also come back frozen after a restart; before, their goals were running again after loading.
+
 ## [1.0.0]
 
 First release: NPCs, armies and teams, combat AI with difficulties, kits, keybinds, the in-game menu and tutorial, and the Command Stick with formations and ghost preview. Details below.

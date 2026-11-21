@@ -43,6 +43,7 @@ public class ScriptKitMod implements ModInitializer {
 			BlockChangeLog.clear();
 			ScriptKitNetworking.clearSession();
 			dev.scriptkit.npc.ArmySelection.clear();
+			dev.scriptkit.npc.ArmyManager.resetSpawnState();
 		});
 		CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) -> {
 			NpcCommand.register(dispatcher);

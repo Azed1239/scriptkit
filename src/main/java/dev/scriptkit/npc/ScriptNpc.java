@@ -103,6 +103,9 @@ public class ScriptNpc extends PathfinderMob {
 		if (aiEnabled) {
 			NpcGoals.register(this);
 		}
+		// A switched-off NPC is fully frozen: vanilla's "no AI" also stops its look and body control, so it
+		// no longer turns its head or body towards players or wanders its gaze.
+		this.setNoAi(!aiEnabled);
 	}
 
 	@Override
@@ -437,6 +440,7 @@ public class ScriptNpc extends PathfinderMob {
 			setHome(this.position()); // NPCs saved before regrouping existed: regroup where they were loaded
 		}
 		this.setGlowingTag(false); // a selection outline never survives a restart
+		refreshGoals(); // goals and the frozen state must match the loaded aiEnabled
 		float fraction = input.getFloatOr("HealthFraction", -1.0F);
 		if (fraction >= 0.0F) {
 			this.setHealth(Math.max(0.5F, fraction * this.getMaxHealth()));

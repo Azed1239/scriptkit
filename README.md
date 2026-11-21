@@ -4,7 +4,7 @@
 
 A free, open-source (MIT) Fabric mod for scripted Minecraft SMPs: choreographed NPCs and recordable scenes for filming videos on your own server.
 
-**Version 1.0.0.** Requires Minecraft 1.21.11, Fabric Loader 0.20.1+ and Fabric API. Install the jar on the server and (for the menu, keybinds, ghost preview and skins) on your client too.
+**Version 1.0.1.** Requires Minecraft 1.21.11, Fabric Loader 0.20.1+ and Fabric API. Install the jar on the server and (for the menu, keybinds, ghost preview and skins) on your client too.
 
 ## Features
 
@@ -66,7 +66,7 @@ Omitted slots are emptied. NPCs drop all equipped gear when they die, like a pla
 |---|---|
 | `/army spawn <count> <team> [kit] [skin] [formation] [difficulty]` | Spawn `<count>` NPCs named `<team>-1`, `<team>-2`, ... around you in a `circle` (default), `grid`, `line`, `column`, `wedge` or `scatter`, facing the way you look. Skin defaults to each NPC's name. Numbering continues from the highest existing number on that team. |
 | `/army formation <team\|all> <shape> [spacing]` | Re-arrange a team in place into `circle`, `grid`, `line`, `column`, `wedge` or `scatter`, facing the way you look (spacing 0.8 to 8, default 1.5). |
-| `/army toggle <team\|all> [on\|off]` | Set `aiEnabled` for a team; without `on`/`off` each NPC's state is flipped. |
+| `/army toggle <team\|all> [on\|off]` | Set `aiEnabled` for a team; without `on`/`off` each NPC's state is flipped. `all` also decides how armies spawned afterwards start: after `toggle all off` they spawn frozen until you toggle all on. |
 | `/army remove <team\|all>` | Remove a team's NPCs. |
 | `/army list` | NPC count per team, and how many have AI on. |
 | `/army team <selector> <team>` | Move NPCs to a team, e.g. `/army team @e[type=scriptkit:npc,distance=..10] red`. |
@@ -245,7 +245,7 @@ Toggle armies with a key instead of typing `/army toggle`. You need operator (ga
 
 Found a bug or have an idea? [Open an issue](https://github.com/Azed1239/scriptkit/issues/new/choose). For a bug, please include what you typed or clicked, the ScriptKit version, whether it was singleplayer or a server, and the relevant part of `logs/latest.log` (or the crash report). For a feature request, describe the scene you are trying to make; that helps more than the feature name.
 
-**Known limitations in 1.0.0**
+**Known limitations**
 - Minecraft 1.21.11 only.
 - Armies and fights only: no scripted scenes (timed movement, dialogue, recording) yet.
 - Tested in singleplayer and on a dev server, not yet on large public servers. Hundreds of NPCs fighting at once, and NPC mining and building, are the likeliest places to find problems.

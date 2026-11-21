@@ -197,6 +197,9 @@ public final class ArmyCommand {
 		}
 		int spawned = ArmyManager.spawn(src.getLevel(), src.getPosition(), src.getRotation().y, count, team, kitName, skin, formation, difficulty);
 		src.sendSuccess(() -> Component.literal("Spawned " + spawned + " NPC(s) on team '" + team + "'."), true);
+		if (ArmyManager.spawnsFrozen()) {
+			src.sendSystemMessage(Component.literal("AI is off, so this army spawned frozen. Turn it on with /army toggle all on (or press G).").withStyle(ChatFormatting.GRAY));
+		}
 		src.sendSystemMessage(blocksHint());
 		return spawned;
 	}
@@ -249,6 +252,10 @@ public final class ArmyCommand {
 	private static int toggle(CommandContext<CommandSourceStack> c, Boolean state) {
 		ArmyManager.AiResult r = ArmyManager.setAi(c.getSource().getServer(), str(c, "team"), state);
 		if (r.count() == 0) {
+			if (str(c, "team").equalsIgnoreCase(ArmyManager.ALL)) {
+				c.getSource().sendSuccess(() -> Component.literal("No NPCs yet. New armies will spawn with AI " + (ArmyManager.spawnsFrozen() ? "off (frozen)" : "on") + "."), true);
+				return 1;
+			}
 			c.getSource().sendFailure(Component.literal("No NPCs on that team."));
 			return 0;
 		}
