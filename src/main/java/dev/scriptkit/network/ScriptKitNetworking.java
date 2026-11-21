@@ -23,11 +23,21 @@ public final class ScriptKitNetworking {
 	public static void register() {
 		PayloadTypeRegistry.playC2S().register(ArmyActionPayload.TYPE, ArmyActionPayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(ReloadKeybindsPayload.TYPE, ReloadKeybindsPayload.CODEC);
+		PayloadTypeRegistry.playS2C().register(MenuPayloads.Open.TYPE, MenuPayloads.Open.CODEC);
+		PayloadTypeRegistry.playS2C().register(MenuPayloads.State.TYPE, MenuPayloads.State.CODEC);
+		PayloadTypeRegistry.playC2S().register(MenuPayloads.Request.TYPE, MenuPayloads.Request.CODEC);
+		PayloadTypeRegistry.playC2S().register(MenuPayloads.Edit.TYPE, MenuPayloads.Edit.CODEC);
 
 		ServerPlayNetworking.registerGlobalReceiver(ArmyActionPayload.TYPE, (payload, context) ->
 			context.server().execute(() -> ArmyActionHandler.handle(context.player(), payload)));
 
+		ServerPlayNetworking.registerGlobalReceiver(MenuPayloads.Request.TYPE, (payload, context) ->
+			context.server().execute(() -> MenuHandler.handleRequest(context.player())));
+		ServerPlayNetworking.registerGlobalReceiver(MenuPayloads.Edit.TYPE, (payload, context) ->
+			context.server().execute(() -> MenuHandler.handleEdit(context.player(), payload)));
+
 		ServerPlayConnectionEvents.DISCONNECT.register((listener, server) -> {
+			MenuHandler.forget(listener.getPlayer().getUUID());
 			UUID id = listener.getPlayer().getUUID();
 			ArmyActionHandler.forget(id);
 			HINTED.remove(id);

@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Phase 5: menu UI, procedural names and skins
+- In-game menu (key K, or `/scriptkit menu`) with Difficulty, Kits and Keybinds tabs. Difficulty: sliders for every preset value, save / save as new / reset / delete, default preset, apply to an army. Kits: six slots with an item picker (search and icons), enchantment editor (left-click +, right-click -), save / save as / reset / delete, give to an army. Keybinds: edit combos with click-to-capture, team slots, save and reload, link to vanilla Controls. Layout adapts down to a 427x240 GUI.
+- Server-checked menu packets (snapshot request, edit, state, open): gamemaster permission, validation of every item, enchantment, level and name, rate limiting, results shown in the menu. Non-operators see the server tabs read-only.
+- Kits can now be saved, overridden and deleted at runtime; `kits.json` stores only custom kits and overrides of built-ins, so built-in updates still apply.
+- `/army kit <team|all> <kit>` and `/scriptkit menu`.
+- Procedural army names (`PingAbuse`, `BanThis`, `SwordPro`, `xXDarkLordXx`, ...), unique and 3-16 characters; `nameStyle: numbered` restores `red-1`.
+- Procedural skins: army NPCs without a chosen skin get a random built-in skin per NPC (no account lookups); an explicit skin still wins, and `skinPool` lets armies draw from a list of usernames.
+- UI smoke test (`-Dscriptkit.debug.ui=true`) that opens every tab and saves screenshots; unit tests for names and key names.
+
 ### Difficulty
 - Per-NPC difficulty presets (`easy`, `normal`, `hard`, `nightmare`), saved in NBT so each army can have its own: damage, health, melee and archer accuracy, jump-crit chance, swing rate, speed, shield skill, reaction speed and detection range. Edit or add presets in `combat.json`.
 - `/army spawn ... [difficulty]`, `/army difficulty [<team|all> <level>]`, `/npc difficulty <name|all> <level>`; `/army list` and `/npc info` show the difficulty. Changing it mid-fight takes effect immediately and keeps each NPC's health as a fraction of its new maximum.

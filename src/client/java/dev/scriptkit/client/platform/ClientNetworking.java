@@ -1,7 +1,9 @@
 package dev.scriptkit.client.platform;
 
 import dev.scriptkit.network.ArmyActionPayload;
+import dev.scriptkit.network.MenuPayloads;
 import dev.scriptkit.network.ReloadKeybindsPayload;
+import java.util.function.Consumer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 
 /** Thin wrapper over Fabric's client networking API (version-specific code lives here). */
@@ -14,6 +16,14 @@ public final class ClientNetworking {
 			(payload, context) -> context.client().execute(onReload));
 	}
 
+	/** Registers the menu handlers: "open the menu" and "here is the current state"; callbacks run on the client thread. */
+	public static void registerMenuReceivers(Runnable onOpen, Consumer<String> onState) {
+		ClientPlayNetworking.registerGlobalReceiver(MenuPayloads.Open.TYPE,
+			(payload, context) -> context.client().execute(onOpen));
+		ClientPlayNetworking.registerGlobalReceiver(MenuPayloads.State.TYPE,
+			(payload, context) -> context.client().execute(() -> onState.accept(payload.json())));
+	}
+
 	/** True if the connected server has ScriptKit (and so understands army packets). */
 	public static boolean serverHasScriptKit() {
 		return ClientPlayNetworking.canSend(ArmyActionPayload.TYPE);
@@ -21,5 +31,17 @@ public final class ClientNetworking {
 
 	public static void send(ArmyActionPayload payload) {
 		ClientPlayNetworking.send(payload);
+	}
+
+	public static boolean canSendMenu() {
+		return ClientPlayNetworking.canSend(MenuPayloads.Request.TYPE);
+	}
+
+	public static void sendMenuRequest() {
+		ClientPlayNetworking.send(new MenuPayloads.Request());
+	}
+
+	public static void sendMenuEdit(String op, String json) {
+		ClientPlayNetworking.send(new MenuPayloads.Edit(op, json));
 	}
 }

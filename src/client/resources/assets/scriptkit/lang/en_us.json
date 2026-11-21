@@ -1,5 +1,6 @@
 {
   "key.category.scriptkit.main": "ScriptKit",
+  "key.scriptkit.open_menu": "Open the ScriptKit menu",
   "key.scriptkit.toggle_all": "Toggle all armies",
   "key.scriptkit.toggle_team_1": "Toggle team 1 (teamSlots[0] in keybinds.json)",
   "key.scriptkit.toggle_team_2": "Toggle team 2 (teamSlots[1] in keybinds.json)",

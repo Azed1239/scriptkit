@@ -215,7 +215,7 @@ public final class NpcCommand {
 		c.getSource().sendSuccess(() -> Component.literal(list.size() + " NPC(s):"), false);
 		for (ScriptNpc npc : list) {
 			String line = String.format("- %s (skin=%s, team=%s, kit=%s) at %.1f %.1f %.1f",
-				npc.getNpcName(), npc.getSkinName(),
+				npc.getNpcName(), npc.getSkinName().isEmpty() ? "random" : npc.getSkinName(),
 				npc.getTeamName().isEmpty() ? "-" : npc.getTeamName(), npc.getKit(),
 				npc.getX(), npc.getY(), npc.getZ());
 			c.getSource().sendSuccess(() -> Component.literal(line), false);

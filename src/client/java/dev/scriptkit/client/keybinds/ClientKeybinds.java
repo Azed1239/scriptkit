@@ -5,6 +5,7 @@ import com.mojang.blaze3d.platform.Window;
 import dev.scriptkit.ScriptKitMod;
 import dev.scriptkit.client.keybinds.KeybindsConfig.Binding;
 import dev.scriptkit.client.platform.ClientNetworking;
+import dev.scriptkit.client.ui.ScriptKitScreen;
 import dev.scriptkit.network.ArmyAction;
 import dev.scriptkit.network.ArmyActionPayload;
 import java.io.IOException;
@@ -34,10 +35,12 @@ import net.minecraft.resources.Identifier;
  */
 public final class ClientKeybinds {
 	private static final int G = 71;
+	private static final int K = 75;
 
 	private static KeyMapping toggleAll;
 	private static KeyMapping[] teamSlotKeys;
-	private static final boolean[] VANILLA_WAS_DOWN = new boolean[1 + KeybindsConfig.TEAM_SLOTS];
+	private static KeyMapping openMenu;
+	private static final boolean[] VANILLA_WAS_DOWN = new boolean[2 + KeybindsConfig.TEAM_SLOTS];
 
 	private static ComboMatcher matcher = new ComboMatcher(List.of());
 	private static List<String> teamSlots = List.of("", "", "");
@@ -47,6 +50,8 @@ public final class ClientKeybinds {
 	public static void init() {
 		KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(ScriptKitMod.MOD_ID, "main"));
 		toggleAll = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.scriptkit.toggle_all", InputConstants.Type.KEYSYM, G, category));
+		openMenu = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.scriptkit.open_menu", InputConstants.Type.KEYSYM, K, category));
+		ClientNetworking.registerMenuReceivers(ScriptKitScreen::open, ScriptKitScreen::onStatePacket);
 		teamSlotKeys = new KeyMapping[KeybindsConfig.TEAM_SLOTS];
 		for (int i = 0; i < teamSlotKeys.length; i++) {
 			teamSlotKeys[i] = KeyBindingHelper.registerKeyBinding(new KeyMapping(
@@ -62,6 +67,22 @@ public final class ClientKeybinds {
 		});
 		reload();
 		ClientTickEvents.END_CLIENT_TICK.register(ClientKeybinds::tick);
+	}
+
+	/** The text of keybinds.json, writing the sample file first if there isn't one. */
+	public static String readFileText() throws IOException {
+		Path path = file();
+		if (!Files.exists(path)) {
+			Files.createDirectories(path.getParent());
+			Files.writeString(path, KeybindsConfig.SAMPLE, StandardCharsets.UTF_8);
+		}
+		return Files.readString(path, StandardCharsets.UTF_8);
+	}
+
+	public static void writeFileText(String text) throws IOException {
+		Path path = file();
+		Files.createDirectories(path.getParent());
+		Files.writeString(path, text, StandardCharsets.UTF_8);
 	}
 
 	private static Path file() {
@@ -112,6 +133,7 @@ public final class ClientKeybinds {
 
 		boolean modifier = ComboMatcher.anyModifierDown(down);
 		fireVanilla(0, toggleAll, modifier, () -> send(mc, ArmyAction.TOGGLE_ALL, ""));
+		fireVanilla(1 + KeybindsConfig.TEAM_SLOTS, openMenu, modifier, ScriptKitScreen::open);
 		for (int i = 0; i < teamSlotKeys.length; i++) {
 			int slot = i;
 			fireVanilla(1 + i, teamSlotKeys[i], modifier, () -> {

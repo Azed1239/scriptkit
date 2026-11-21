@@ -2,7 +2,7 @@
 
 A free, open-source (MIT) Fabric mod for scripted Minecraft SMPs: choreographed NPCs and recordable scenes for filming videos on your own server.
 
-**Status:** Phase 4 – NPCs, armies and teams, combat AI, keybinds.
+**Status:** Phase 5 – NPCs, armies and teams, combat AI, keybinds, in-game menu.
 
 ## Target
 
@@ -58,6 +58,7 @@ Omitted slots are emptied. NPCs drop all equipped gear when they die, like a pla
 | `/army team <selector> <team>` | Move NPCs to a team, e.g. `/army team @e[type=scriptkit:npc,distance=..10] red`. |
 | `/army difficulty` | List the difficulty presets and what each changes. |
 | `/army difficulty <team\|all> <level>` | Set an army's difficulty (also saved with each NPC). |
+| `/army kit <team\|all> <kit>` | Give every NPC on a team (or all) a kit. |
 | `/army blocks [on\|off]` | Turn NPC mining and building on or off (saved to `combat.json`). Without an argument, shows the current state. |
 | `/army cleanup` | Put back every block NPCs mined or placed. Blocks changed since by someone else are left alone. |
 
@@ -149,6 +150,24 @@ Against a player in full enchanted netherite (the `god` kit) a normal NPC lands 
 | `pillarBlock` | `minecraft:cobblestone` | Block used for pillaring. |
 | `dropMinedBlocks` | false | Mined blocks drop as items. |
 
+## Menu (Phase 5)
+
+Press **K** (rebindable in Controls > ScriptKit) or run `/scriptkit menu` to open the ScriptKit menu. You still create armies and NPCs with commands; the menu is for tuning and equipping them. It needs ScriptKit on your client; changing anything on the server needs operator (gamemaster) permission, otherwise those tabs are read-only.
+
+| Tab | What you can do |
+|---|---|
+| **Difficulty** | Pick a preset and tune every value with sliders (damage, health, accuracies, crit chance, swing rate, speed, shield skill, reaction, range). Save it, save a copy under a new name, reset a built-in preset or delete a custom one, make it the default for new NPCs, and apply it to an army. |
+| **Kits** | Pick a kit and set each of the six slots with the item picker (search by name or id, with icons). Left-click an enchantment to raise its level, right-click to lower it. Save, save as a new kit, reset a built-in kit or delete a custom one, and give the kit to an army or all NPCs. For a single NPC use `/npc kit <name> <kit>`. |
+| **Keybinds** | Edit your key combos without a text editor: choose the action and team, click the key box and press the combo, then Save & reload. Entries the editor doesn't understand are kept untouched. A button opens the vanilla Controls screen for the G key, the team slots and the menu key. This tab only changes your own `keybinds.json`. |
+
+Edits are validated on the server (items and enchantments must exist, levels 1-255, names use letters, digits, `-` and `_`) and saved to `combat.json` and `kits.json`, so they survive restarts and can still be hand-edited.
+
+## Names and skins
+
+Armies get procedural gamer-tag names like `PingAbuse`, `BanThis`, `SwordPro` or `xXDarkLordXx` (3-16 characters, unique among NPCs, usable in commands). Set `nameStyle` to `numbered` in `config/scriptkit/config.json` to get `red-1`, `red-2` again. Names show on name tags and in death messages.
+
+Army NPCs without a skin you chose get a random built-in skin (Steve, Alex, Ari, Efe, Kai, Makena, Noor, Sunny, Zuri, in both arm shapes), picked per NPC and stable across restarts, with no account lookups. Give a skin to `/army spawn <count> <team> <kit> <skin>` to override it for the whole army, or list usernames in `skinPool` (config.json) to pick randomly from real accounts. `/npc spawn <name>` still uses the name as the skin unless you pass one.
+
 ## Keybinds (Phase 4)
 
 Toggle armies with a key instead of typing `/army toggle`. You need operator (gamemaster) permission, the same as the commands, and ScriptKit on both your client and the server (singleplayer and LAN count: the integrated server does the work). Servers without ScriptKit on your client still work fully with commands.
@@ -185,7 +204,9 @@ Toggle armies with a key instead of typing `/army toggle`. You need operator (ga
 
 ## Development
 
-- `./gradlew test` runs unit tests for the key-combo matching and `keybinds.json` parsing.
+- `./gradlew test` runs unit tests for key-combo matching, `keybinds.json` parsing, key names and the name generator.
+- Starting the client with `-Dscriptkit.debug.ui=true` runs a UI smoke test: it opens the menu on the title screen, shows every tab and the item picker, saves screenshots to `run/screenshots`, and quits.
+- With `-Dscriptkit.debug=true` the dev server also gets `/scriptkit simulate-menu <op|denied> <action> <json>` and `/scriptkit snapshot`.
 - Starting a dev server with `-Dscriptkit.debug=true` adds `/scriptkit simulate <sender> <op|denied> <action> [team]`, which runs the keybind packet handler without a client.
 
 ## Layout

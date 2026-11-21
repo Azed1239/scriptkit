@@ -46,7 +46,7 @@ public class NpcRenderer extends EntityRenderer<ScriptNpc, NpcRenderer.State> {
 
 	@Override
 	public void extractRenderState(ScriptNpc npc, State state, float partialTick) {
-		PlayerSkin skin = NpcSkins.skinFor(npc.getSkinName());
+		PlayerSkin skin = NpcSkins.skinFor(npc.getSkinName(), npc.getUUID());
 		state.slimModel = skin.model() == PlayerModelType.SLIM;
 		(state.slimModel ? slim : wide).extractRenderState(npc, state, partialTick);
 		state.skin = skin;

@@ -7,7 +7,10 @@ import com.mojang.brigadier.context.CommandContext;
 import dev.scriptkit.ai.CombatConfig;
 import dev.scriptkit.config.ScriptKitConfig;
 import dev.scriptkit.network.ArmyActionHandler;
+import dev.scriptkit.network.MenuHandler;
+import dev.scriptkit.network.MenuService;
 import dev.scriptkit.network.ScriptKitNetworking;
+import net.minecraft.server.level.ServerPlayer;
 import dev.scriptkit.npc.KitManager;
 import java.util.UUID;
 import net.minecraft.ChatFormatting;
@@ -25,8 +28,30 @@ public final class ScriptKitCommand {
 
 		root.then(Commands.literal("reload").executes(ScriptKitCommand::reload));
 
-		// Developer-only: feed the keybind packet handler without a client. Needs -Dscriptkit.debug=true.
+		root.then(Commands.literal("menu").executes(c -> {
+			ServerPlayer player = c.getSource().getPlayer();
+			if (player == null) {
+				c.getSource().sendFailure(Component.literal("Only a player can open the menu."));
+				return 0;
+			}
+			if (!MenuHandler.open(player)) {
+				c.getSource().sendFailure(Component.literal("Your client doesn't have ScriptKit installed, so it can't show the menu."));
+				return 0;
+			}
+			return 1;
+		}));
+
+		// Developer-only: feed the packet handlers without a client. Needs -Dscriptkit.debug=true.
 		if (Boolean.getBoolean("scriptkit.debug")) {
+			root.then(Commands.literal("simulate-menu")
+				.then(Commands.argument("permitted", StringArgumentType.word())
+					.then(Commands.argument("op", StringArgumentType.word())
+						.then(Commands.argument("json", StringArgumentType.greedyString())
+							.executes(ScriptKitCommand::simulateMenu)))));
+			root.then(Commands.literal("snapshot").executes(c -> {
+				c.getSource().sendSuccess(() -> Component.literal(MenuService.snapshot(c.getSource().getServer(), true, null)), false);
+				return 1;
+			}));
 			root.then(Commands.literal("simulate")
 				.then(Commands.argument("sender", StringArgumentType.word())
 					.then(Commands.argument("permitted", StringArgumentType.word())
@@ -48,6 +73,15 @@ public final class ScriptKitCommand {
 			: "keybinds reloading on " + clients + " client(s)";
 		c.getSource().sendSuccess(() -> Component.literal("ScriptKit reloaded: config, combat and kits; " + clientsPart + "."), true);
 		return 1;
+	}
+
+	private static int simulateMenu(CommandContext<CommandSourceStack> c) {
+		boolean permitted = StringArgumentType.getString(c, "permitted").equalsIgnoreCase("op");
+		MenuService.Result r = permitted
+			? MenuService.edit(c.getSource().getServer(), StringArgumentType.getString(c, "op"), StringArgumentType.getString(c, "json"))
+			: new MenuService.Result(false, "You don't have permission to change ScriptKit settings.");
+		c.getSource().sendSuccess(() -> Component.literal("[menu " + (r.ok() ? "ok" : "FAILED") + "] " + r.message()), false);
+		return r.ok() ? 1 : 0;
 	}
 
 	private static int simulate(CommandContext<CommandSourceStack> c, String team) {

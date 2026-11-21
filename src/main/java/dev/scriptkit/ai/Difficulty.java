@@ -62,7 +62,7 @@ public final class Difficulty {
 	}
 
 	/** Clamps every value into a sane range so a typo in combat.json can't break fights. */
-	void sanitize() {
+	public void sanitize() {
 		damage = clamp(damage, 0.0, 20.0);
 		health = clamp(health, 0.1, 20.0);
 		meleeAccuracy = clamp(meleeAccuracy, 0.0, 1.0);

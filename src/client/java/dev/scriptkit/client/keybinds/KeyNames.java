@@ -92,6 +92,17 @@ public final class KeyNames {
 		return NAMES.get(n);
 	}
 
+	/** The canonical name for a single key code (for example 82 -> "R"), or null if the key isn't supported. */
+	public static String nameOf(int code) {
+		String best = null;
+		for (Map.Entry<String, Set<Integer>> e : NAMES.entrySet()) {
+			if (e.getValue().size() == 1 && e.getValue().contains(code) && (best == null || e.getKey().length() < best.length())) {
+				best = e.getKey();
+			}
+		}
+		return best;
+	}
+
 	public static boolean isModifierGroup(Set<Integer> group) {
 		return MODIFIERS.containsAll(group);
 	}

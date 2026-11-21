@@ -18,9 +18,13 @@ public final class NpcSkins {
 
 	private NpcSkins() {}
 
-	public static PlayerSkin skinFor(String username) {
+	/**
+	 * Skin for an NPC. A blank name means "random": one of the built-in skins (Steve, Alex, Ari, ...)
+	 * chosen from the NPC's UUID, so it is stable per NPC and needs no account lookup.
+	 */
+	public static PlayerSkin skinFor(String username, java.util.UUID npcId) {
 		if (username == null || username.isBlank()) {
-			return DefaultPlayerSkin.getDefaultSkin();
+			return DefaultPlayerSkin.get(npcId);
 		}
 		try {
 			if (PROFILES.size() > MAX_CACHED_PROFILES) {

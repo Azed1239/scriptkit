@@ -21,6 +21,13 @@ public final class ScriptKitConfig {
 	public boolean friendlyFire = false;
 	/** "circle" or "grid". */
 	public String defaultFormation = "circle";
+	/** "generated" gives army NPCs gamer-tag names (PingAbuse, BanThis...); "numbered" gives team-1, team-2... */
+	public String nameStyle = "generated";
+	/**
+	 * Usernames whose skins army NPCs pick from at random when no skin is given. Empty (the default)
+	 * means every NPC gets a random built-in skin (Steve, Alex, Ari, ...), with no account lookups.
+	 */
+	public java.util.List<String> skinPool = new java.util.ArrayList<>();
 
 	public static ScriptKitConfig get() {
 		return instance;
@@ -42,6 +49,14 @@ public final class ScriptKitConfig {
 					if (loaded.defaultFormation == null) {
 						loaded.defaultFormation = "circle";
 					}
+					if (loaded.nameStyle == null || !(loaded.nameStyle.equalsIgnoreCase("generated") || loaded.nameStyle.equalsIgnoreCase("numbered"))) {
+						loaded.nameStyle = "generated";
+					}
+					loaded.nameStyle = loaded.nameStyle.toLowerCase();
+					if (loaded.skinPool == null) {
+						loaded.skinPool = new java.util.ArrayList<>();
+					}
+					loaded.skinPool.removeIf(s -> s == null || !s.matches("[A-Za-z0-9_]{1,16}"));
 					instance = loaded;
 				}
 			}

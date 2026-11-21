@@ -59,6 +59,26 @@ public final class ArmyCommand {
 									.suggests(DIFFICULTIES)
 									.executes(c -> spawn(c, str(c, "kit"), str(c, "skin"), str(c, "formation"), str(c, "difficulty"))))))))));
 
+		root.then(Commands.literal("kit")
+			.then(Commands.argument("team", StringArgumentType.word())
+				.suggests(TEAMS)
+				.then(Commands.argument("kit", StringArgumentType.word())
+					.suggests(KITS)
+					.executes(c -> {
+						String kit = str(c, "kit");
+						if (!KitManager.exists(kit)) {
+							c.getSource().sendFailure(Component.literal("Unknown kit '" + kit + "'."));
+							return 0;
+						}
+						int n = ArmyManager.setKit(c.getSource().getServer(), str(c, "team"), kit);
+						if (n == 0) {
+							c.getSource().sendFailure(Component.literal("No NPCs on that team."));
+							return 0;
+						}
+						c.getSource().sendSuccess(() -> Component.literal("Gave kit " + kit + " to " + n + " NPC(s)."), true);
+						return n;
+					}))));
+
 		root.then(Commands.literal("difficulty")
 			.executes(ArmyCommand::difficultyHelp)
 			.then(Commands.argument("team", StringArgumentType.word())

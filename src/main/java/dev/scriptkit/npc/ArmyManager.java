@@ -3,6 +3,9 @@ package dev.scriptkit.npc;
 import dev.scriptkit.config.ScriptKitConfig;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Set;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -61,18 +64,28 @@ public final class ArmyManager {
 		MinecraftServer server = level.getServer();
 		int next = nextIndex(server, team);
 		int spawned = 0;
+		ScriptKitConfig cfg = ScriptKitConfig.get();
+		boolean generated = cfg.nameStyle.equals("generated");
+		Set<String> taken = new HashSet<>();
+		if (generated) {
+			NpcManager.all(server).forEach(n -> taken.add(n.getNpcName().toLowerCase()));
+		}
+		Random rnd = new Random();
 		for (int i = 0; i < count; i++) {
 			Vec3 offset = offset(formation, i, count);
 			double x = origin.x + offset.x;
 			double z = origin.z + offset.z;
 			double y = groundY(level, x, origin.y, z);
-			String name = team + "-" + (next + i);
+			String name = generated
+				? NameGenerator.generate(rnd, n -> taken.contains(n.toLowerCase()) || n.equalsIgnoreCase(ALL))
+				: team + "-" + (next + i);
+			taken.add(name.toLowerCase());
 
 			ScriptNpc npc = ScriptNpc.create(level);
 			npc.snapTo(x, y, z, yaw, 0.0F);
 			npc.setYHeadRot(yaw);
 			npc.setNpcName(name);
-			npc.setSkinName(skin == null ? name : skin);
+			npc.setSkinName(skin != null ? skin : randomSkin(cfg, rnd));
 			npc.setKit(kit);
 			npc.setTeamName(team);
 			if (difficulty != null) {
@@ -85,6 +98,11 @@ public final class ArmyManager {
 			}
 		}
 		return spawned;
+	}
+
+	/** A skin from the configured pool, or "" for a random built-in skin chosen by the client from the NPC's UUID. */
+	private static String randomSkin(ScriptKitConfig cfg, Random rnd) {
+		return cfg.skinPool.isEmpty() ? "" : cfg.skinPool.get(rnd.nextInt(cfg.skinPool.size()));
 	}
 
 	/** Result of {@link #setAi}: how many NPCs were affected and the AI state they now have. */
@@ -113,6 +131,15 @@ public final class ArmyManager {
 		List<ScriptNpc> npcs = select(server, team);
 		for (ScriptNpc npc : npcs) {
 			npc.setDifficulty(difficulty);
+		}
+		return npcs.size();
+	}
+
+	/** Gives every NPC on {@code team} (or all) a kit. Returns how many NPCs changed. */
+	public static int setKit(MinecraftServer server, String team, String kit) {
+		List<ScriptNpc> npcs = select(server, team);
+		for (ScriptNpc npc : npcs) {
+			npc.setKit(kit);
 		}
 		return npcs.size();
 	}
