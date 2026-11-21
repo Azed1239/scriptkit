@@ -2,265 +2,316 @@
 
 ![ScriptKit](docs/banner.png)
 
-A free, open-source (MIT) Fabric mod for scripted Minecraft SMPs: choreographed NPCs and recordable scenes for filming videos on your own server.
+**Film a Minecraft battle without recruiting thirty friends.**
 
-**Version 1.0.1.** Requires Minecraft 1.21.11, Fabric Loader 0.20.1+ and Fabric API. Install the jar on the server and (for the menu, keybinds, ghost preview and skins) on your client too.
-
-## Features
-
-- **Player-like NPCs**: lightweight entities that look like players (random or chosen skins, procedural names like `PingAbuse`), that drop their gear on death like a real player.
-- **Armies and teams**: spawn whole armies in a circle, grid, line, column, wedge or scatter; neutral players are fair game for every army; join a team from the menu.
-- **Combat AI**: melee, bows, shields, crits, block breaking and placing, regrouping after fights, bunny hopping, per-army difficulty presets.
-- **Command Stick**: select an army from afar, change its formation with left-click, see a ghost preview and place it with right-click, then press G to start the fight.
-- **Kits**: editable gear sets you can give to NPCs or yourself.
-- **Keybinds and menu** (K): difficulty, kits, team, keybinds and a guide, plus an onboarding tutorial.
-- **Server friendly**: operator permissions, rate-limited and validated packets, plain JSON configs in `config/scriptkit/`.
-
-
-## Target
+ScriptKit is a free, open-source (MIT) Fabric mod for scripted SMPs and video creators. It gives you armies of player-like NPCs that fight on their own, wait for your cue, and can be arranged from far away with one stick.
 
 | | |
 |---|---|
-| Minecraft | 1.21.11 (obfuscated; Mojang mappings) |
-| Fabric Loader | 0.20.1 |
-| Fabric API | 0.141.6+1.21.11 |
-| Loom | `net.fabricmc.fabric-loom-remap` 1.19.4 |
+| Version | 1.0.1 |
+| Minecraft | 1.21.11 |
+| Loader | Fabric Loader 0.20.1 or newer |
+| Required mod | [Fabric API](https://modrinth.com/mod/fabric-api) |
 | Java | 21 |
+| Install on | the server **and** every player's client |
 
-## Building
+## Contents
 
-```
-./gradlew build        # jar in build/libs/
-./gradlew runServer    # dev server (accept EULA in run/eula.txt first)
-./gradlew runClient    # dev client
-```
+- [Install](#install) and [where everything lives](#folder-map)
+- [Quick start](#quick-start-your-first-scene)
+- [The Command Stick](#the-command-stick)
+- [Commands](#commands)
+- [Menu, tutorial and keybinds](#menu-tutorial-and-keybinds)
+- [Combat, difficulty and kits](#combat-difficulty-and-kits)
+- [Configuration files](#configuration-files)
+- [Troubleshooting](#troubleshooting) and [feedback](#feedback-and-bugs)
+- [Building from source](#building-from-source)
 
-## NPCs (Phase 1)
+## Features
 
-NPCs are lightweight entities rendered like players with a skin fetched by username (default skin while loading or if the lookup fails). They stand still and never despawn.
+- **Player-like NPCs** with random or chosen skins and generated names like `PingAbuse`. They drop their gear on death like a real player.
+- **Armies and teams**: spawn armies in a circle, grid, line, column, wedge or scatter. Players with no team are fair game for every army.
+- **Combat AI**: melee, bows, shields, critical hits, strafing, bunny hopping, mining and building to reach enemies, and regrouping after fights.
+- **Difficulty presets** (easy, normal, hard, nightmare) per army, changeable mid-fight.
+- **Kits**: save gear sets and hand them to an army, one NPC, or yourself.
+- **Command Stick**: select an army from far away, change its formation with left-click, see a ghost preview, and place it with right-click.
+- **In-game menu** (K), rebindable keys and combos, and a nine-lesson tutorial.
+- **Server friendly**: operator-only, server-validated and rate-limited, plain JSON config.
 
-| Command | Effect |
-|---|---|
-| `/npc spawn <name> [skin] [team] [kit]` | Spawn at your position. Skin defaults to the name; team is a vanilla scoreboard team (created if missing); kit defaults to `none`. |
-| `/npc remove <name\|all>` | Remove NPCs. |
-| `/npc list` | List NPCs with skin, team, kit and position. |
-| `/npc kit <name\|all> <kit>` | Change gear. |
-| `/npc difficulty <name\|all> <level>` | Set one NPC's (or every NPC's) difficulty. |
-| `/npc info <name>` | Why is this NPC (not) fighting? Shows its AI state, team and target, and for the 8 nearest living entities whether each is a valid enemy or why it is ignored (same team, creative mode, out of range, no team...). |
+## Install
 
-All commands need op (gamemaster) permission. NPC names are unique (case-insensitive) among loaded NPCs; `all` is reserved. Commands only see NPCs in loaded chunks.
+1. Install the [Fabric Loader](https://fabricmc.net/use/installer/) for Minecraft 1.21.11 (or create a Fabric 1.21.11 profile in your launcher of choice).
+2. Download [Fabric API](https://modrinth.com/mod/fabric-api) for 1.21.11.
+3. Download `scriptkit-1.0.1.jar` from Modrinth (search for ScriptKit) or the [GitHub releases](https://github.com/Azed1239/scriptkit/releases).
+4. Put **both jars** (Fabric API and ScriptKit) in the `mods` folder, on the server and on each player's client. See the folder map below.
+5. Start the game. On first launch ScriptKit creates its config files.
 
-### Kits
+ScriptKit adds custom entities and an item, so a player without the mod cannot join a server that has it.
 
-Built-in kits: `knight` (iron, sword, shield), `archer` (leather, bow), `god` (maxed-out enchanted netherite with a netherite sword and shield) and `none`. They're always available; `config/scriptkit/kits.json` (written on first start) can override them or add your own. Each kit maps `head`, `chest`, `legs`, `feet`, `mainhand`, `offhand` to an item id, or to an object with enchantments:
+### Folder map
 
-```json
-"mainhand": { "id": "minecraft:netherite_sword", "enchantments": { "minecraft:sharpness": 5, "minecraft:fire_aspect": 2 } }
-```
+Paths are for Windows. `%appdata%` is `C:\Users\<you>\AppData\Roaming`.
 
-Omitted slots are emptied. NPCs drop all equipped gear when they die, like a player. The file is re-read on server start.
-
-## Armies and teams (Phase 2)
-
-| Command | Effect |
-|---|---|
-| `/army spawn <count> <team> [kit] [skin] [formation] [difficulty]` | Spawn `<count>` NPCs named `<team>-1`, `<team>-2`, ... around you in a `circle` (default), `grid`, `line`, `column`, `wedge` or `scatter`, facing the way you look. Skin defaults to each NPC's name. Numbering continues from the highest existing number on that team. |
-| `/army formation <team\|all> <shape> [spacing]` | Re-arrange a team in place into `circle`, `grid`, `line`, `column`, `wedge` or `scatter`, facing the way you look (spacing 0.8 to 8, default 1.5). |
-| `/army toggle <team\|all> [on\|off]` | Set `aiEnabled` for a team; without `on`/`off` each NPC's state is flipped. `all` also decides how armies spawned afterwards start: after `toggle all off` they spawn frozen until you toggle all on. |
-| `/army remove <team\|all>` | Remove a team's NPCs. |
-| `/army list` | NPC count per team, and how many have AI on. |
-| `/army team <selector> <team>` | Move NPCs to a team, e.g. `/army team @e[type=scriptkit:npc,distance=..10] red`. |
-| `/army difficulty` | List the difficulty presets and what each changes. |
-| `/army difficulty <team\|all> <level>` | Set an army's difficulty (also saved with each NPC). |
-| `/army kit <team\|all> <kit>` | Give every NPC on a team (or all) a kit. |
-| `/scriptkit stick [players]` | Gives the Command Stick (see below). |
-| `/scriptkit kit <kit> [players]` | Put a kit's items in your inventory (or other players'), like `/give`. Anything that doesn't fit drops at your feet; the armor you are wearing is never replaced. |
-| `/army blocks [on\|off]` | Turn NPC mining and building on or off (saved to `combat.json`). Without an argument, shows the current state. |
-| `/army cleanup` | Put back every block NPCs mined or placed. Blocks changed since by someone else are left alone. |
-
-Teams are vanilla scoreboard teams. When the mod creates one it gets a stable color (change it with `/team modify <team> color <color>`) and the friendly-fire flag from the config. `all` is reserved and cannot be a team name.
-
-With AI on, NPCs fight (see Combat below). With AI off they stand still and run no goals or target scans at all. The state is saved with the NPC.
-
-### Config
-
-`config/scriptkit/config.json`, created on first run and re-read on server start:
-
-```json
-{ "maxArmySize": 100, "friendlyFire": false, "defaultFormation": "circle" }
-```
-
-`friendlyFire` is applied to teams when they are created. NPC damage between teammates needs both this flag and the team's own setting to be on, so the default (`false`) always protects teammates, even on teams created before the config existed.
-
-## Combat (Phase 3)
-
-With AI on, each NPC:
-
-- **Targets** (shown by `/npc info`) the nearest living entity on a *different* scoreboard team within `detectionRange`: other NPCs and players. Teammates, spectators and creative players (unless `targetCreativePlayers`) are never targeted. Players on no team are neutral: every army targets them (turn `targetTeamlessPlayers` off in combat.json to let a teamless player walk among armies while filming). Enemies farther than `detectionRange` are not noticed either: when one army wipes out another, the survivors go idle unless another enemy is within range. To fight for an army, join its team (Team tab or `/team join`); to fight them all, stay neutral.
-- **Hostile mobs:** zombies, skeletons, creepers, spiders and slimes attack NPCs the way they attack players (creepers swell and explode next to them), so mobs can hunt and kill NPCs. NPCs do not fight back against mobs by default; set `npcsFightHostileMobs` to true and they will, but only when no player or enemy NPC is in range. Endermen are left alone.
-- **Regroup:** with no target left, an NPC walks back to its formation spot (where it was spawned, or where its AI was last switched on) instead of standing where the fight ended; far trips are run. It gives up for a few seconds if the way back is blocked.
-- **Bunny hopping:** about half of all NPCs (`bunnyHopChance`) are bunny hoppers: while sprinting at an enemy they hop in bursts, with stretches of plain running in between. The rest never hop, so a group looks like a mix.
-- **Melee:** chases with vanilla pathfinding (sprinting when far), swings at the weapon's real attack speed (fists fast, swords medium, axes slow), and uses the weapon's damage and knockback. In melee range it circle-strafes, changing direction at random, and sometimes steps back after being hit.
-- **Critical hits:** sometimes (`critChance`) they hop just before a swing and strike on the way down, like a player's jump-crit: 1.5x damage, crit particles and sound.
-- **Shield:** with a shield in the offhand it keeps the shield up while an enemy is close, lowers it only to swing, and times its swing to land right after an NPC opponent's attack.
-- **Bow:** keeps 10–15 blocks away, draws fully, leads moving targets, and runs from enemies closer than 6 blocks. Arrows are real projectiles (they can be blocked) but consume no ammo and can't be picked up.
-- **Idle:** with no target it stands still and looks around or at nearby players. It does not wander, so formations hold.
-- **Stuck:** if it can't make progress toward a target it jumps, then repaths, then mines and builds its way there (below), and only then gives up on that target for 5 seconds.
-
-### Mining and building
-
-When normal pathfinding can't reach the target (trapped in a hole, sealed in, target up on a ledge), NPCs work their way out like a player:
-
-- **Pillar up** by jumping and placing a block underneath (cobblestone by default, unlimited supply).
-- **Tunnel** through blocks in the way, and **staircase down** toward targets below.
-- They briefly show the right tool (or the block) in hand, swing, and blocks crack and break in vanilla time for an iron tool.
-- Never broken: blocks with storage or data (chests, beds, signs...), unbreakable blocks, anything harder than `maxBreakHardness` (default 5, so obsidian is safe), and blocks next to water or lava.
-- Mined blocks don't drop items unless `dropMinedBlocks` is on.
-- Every change is logged (saved with the world) so `/army cleanup` can undo it after a take.
-
-`/army spawn` shows a chat hint with a click-to-toggle button and a pointer to `/army cleanup`.
-
-When an NPC dies, chat shows a player-style death message (for example `red-3 was slain by blue-7`) and a yellow `red-3 left the game`. It drops its kit unless `dropKitOnDeath` is off.
-
-Target scanning is throttled: one shared list of combat-relevant entities per world, rebuilt every 10 ticks, and each NPC re-picks its target every `retargetIntervalTicks`, staggered by entity id.
-
-### Difficulty
-
-Every NPC has a difficulty preset, saved with it, so different armies can fight at different levels. New NPCs use `defaultDifficulty` (normal); `/army spawn ... <formation> <difficulty>` sets it at spawn, and `/army difficulty red nightmare` changes a whole army at any time, even mid-fight. `/army list` and `/npc info` show it.
-
-| | easy | normal | hard | nightmare |
-|---|---|---|---|---|
-| Damage dealt (melee and arrows) | x0.6 | x1.0 | x1.6 | x3.0 |
-| Health | x0.8 | x1.0 | x1.3 | x2.0 |
-| Melee accuracy | 45% | 75% | 90% | 100% |
-| Archer accuracy | 50% | 80% | 92% | 100% |
-| Jump crit chance | 10% | 35% | 50% | 70% |
-| Swing rate | x0.8 | x1.0 | x1.15 | x1.3 |
-| Speed | x1.0 | x1.0 | x1.05 | x1.1 |
-| Shield skill | 30% | 70% | 90% | 100% |
-| Reaction (how fast they notice and switch enemies) | x0.5 | x1.0 | x1.5 | x2.5 |
-| Detection range | x0.8 | x1.0 | x1.2 | x1.5 |
-
-Against a player in full enchanted netherite (the `god` kit) a normal NPC lands hits that do only a few points of damage, so a god-kit player needs `hard` or `nightmare` armies to be in real danger. Presets are plain entries in the `difficulties` section of `combat.json`; edit them or add your own (any name works in the commands). Values are clamped to sane ranges so a typo can't break fights. `damageMultiplier` below still applies on top of the preset.
-
-### Combat config
-
-`config/scriptkit/combat.json`, created on first run and re-read on server start (new options are added to older files automatically):
-
-| Option | Default | Meaning |
+| What | Singleplayer / client | Dedicated server |
 |---|---|---|
-| `detectionRange` | 32 | Blocks within which NPCs notice enemies. |
-| `retargetIntervalTicks` | 20 | How often each NPC re-picks its target. |
-| `strafe` | true | Circle-strafe and step back in melee. |
-| `block` | true | Use offhand shields. |
-| `hostileMobsAttackNpcs` | true | Hostile mobs attack NPCs. |
-| `npcsFightHostileMobs` | false | NPCs with AI on fight hostile mobs (after players and enemy NPCs). Off: mobs hunt NPCs but NPCs ignore mobs. |
-| `regroupAfterFight` | true | With no target left, NPCs walk back to their formation spot. |
-| `bunnyHopChance` | 0.5 | Fraction of NPCs that are bunny hoppers (they hop in bursts while sprinting at an enemy). |
-| `targetTeamlessPlayers` | true | Players on no team are neutral: every army attacks them. |
-| `targetCreativePlayers` | false | Also chase and swing at players in creative mode (they can't be hurt). |
-| `defaultDifficulty` | normal | Difficulty for NPCs that don't have one set. |
-| `difficulties` | (4 presets) | The presets above: accuracy, crit chance, damage, health, speed and more. |
-| `damageMultiplier` | 1.0 | Scales all NPC damage (melee and arrows) on top of the difficulty. Lower = longer fights. |
-| `npcsCanHurtPlayers` | true | If false, NPCs never target players. |
-| `playerFriendlyFire` | true | Players can damage NPCs on their own team (accidental hits count). |
-| `dropKitOnDeath` | true | Drop equipped gear on death. |
-| `deathMessages` | true | Broadcast death messages (also follows the `showDeathMessages` game rule). |
-| `leaveMessages` | true | Broadcast "left the game" after a death. |
-| `leaveMessageOnRemove` | false | Also broadcast "left the game" for `/npc remove` and `/army remove`. |
-| `allowBlockBreaking` | true | Stuck NPCs may mine blocks. |
-| `allowBlockPlacing` | true | Stuck NPCs may pillar up with blocks. |
-| `maxBreakHardness` | 5.0 | Hardest block NPCs may break (stone 1.5, iron block 5, obsidian 50). |
-| `pillarBlock` | `minecraft:cobblestone` | Block used for pillaring. |
-| `dropMinedBlocks` | false | Mined blocks drop as items. |
+| Put the mod jars here | `%appdata%\.minecraft\mods\` | `<server folder>\mods\` |
+| Server config (`config.json`, `combat.json`, `kits.json`) | `%appdata%\.minecraft\config\scriptkit\` | `<server folder>\config\scriptkit\` |
+| Your personal keys and tutorial progress (`keybinds.json`, `tutorial.json`) | `%appdata%\.minecraft\config\scriptkit\` | each player's own `.minecraft\config\scriptkit\` |
+| NPC block-change log (for `/army cleanup`) | `%appdata%\.minecraft\saves\<World>\data\scriptkit_block_changes.dat` | `<server folder>\<world>\data\scriptkit_block_changes.dat` |
+| Logs (attach these to bug reports) | `%appdata%\.minecraft\logs\latest.log` | `<server folder>\logs\latest.log` |
+| Crash reports | `%appdata%\.minecraft\crash-reports\` | `<server folder>\crash-reports\` |
+| Screenshots (F2) | `%appdata%\.minecraft\screenshots\` | - |
 
-## Menu (Phase 5)
+Quick ways to open them: press `Win + R`, type `%appdata%\.minecraft` and press Enter. In Minecraft, **Options > Resource Packs > Open Pack Folder** opens `.minecraft\resourcepacks`; go up one folder and you are in `.minecraft`, where `mods`, `config`, `logs` and `saves` are.
 
-Press **K** (rebindable in Controls > ScriptKit) or run `/scriptkit menu` to open the ScriptKit menu. You still create armies and NPCs with commands; the menu is for tuning and equipping them. It needs ScriptKit on your client; changing anything on the server needs operator (gamemaster) permission, otherwise those tabs are read-only.
+Using another launcher? The same folders live inside the instance folder: Modrinth App (`...\ModrinthApp\profiles\<name>\`), Prism Launcher (`...\PrismLauncher\instances\<name>\minecraft\`), CurseForge (`...\curseforge\minecraft\Instances\<name>\`). Right-click the instance and choose "Open folder" to find it.
 
-| Tab | What you can do |
+The config files are created the first time the game or server runs, and re-read when the server starts (or when you run `/scriptkit reload`).
+
+### Permissions
+
+All ScriptKit commands, the Command Stick, and menu edits need operator permission (gamemaster, level 2). Make yourself an operator on a server with `/op <name>`. Singleplayer worlds need cheats on.
+
+## Quick start: your first scene
+
+1. `/scriptkit stick` gives you the Command Stick.
+2. Spawn two armies. `/army spawn 12 red none steve wedge`, then step aside and `/army spawn 12 blue none alex line`.
+3. Right-click any NPC with the stick to select its army.
+4. Left-click to cycle the formation, aim at the ground to see the ghost preview, and right-click to place the army.
+5. Do the same for the other army.
+6. Press **G** (or `/army toggle all`) and both armies fight.
+
+Prefer to be walked through it? Press **K** and open the **Tutorial** tab. It teaches each command with Copy and Run buttons.
+
+Tip: if you want to pose and film an army without it moving, run `/army toggle all off` first. New armies then spawn frozen until you toggle all back on.
+
+## The Command Stick
+
+`/scriptkit stick` (operator) gives you the stick. It is also in the creative **Tools** tab.
+
+| Action | Result |
 |---|---|
-| **Difficulty** | Pick a preset and tune every value with sliders (damage, health, accuracies, crit chance, swing rate, speed, shield skill, reaction, range). Save it, save a copy under a new name, reset a built-in preset or delete a custom one, make it the default for new NPCs, and apply it to an army. |
-| **Kits** | Pick a kit and set each of the six slots with the item picker (search by name or id, with icons). Left-click an enchantment to raise its level, right-click to lower it. Save, save as a new kit, reset a built-in kit or delete a custom one, and give the kit to an army, to all NPCs, to one NPC by name (pick "one NPC by name" in the Give to selector and type the name), or to yourself (pick "me": the items go in your inventory). |
-| **Team** | See your team, join any team, create a new one, or go neutral (no team). On a team you fight for it and armies on other teams attack you; neutral, every army attacks you and they fight each other too. |
-| **Keybinds** | Edit your key combos without a text editor: choose the action and team, click the key box and press the combo, then Save & reload. Entries the editor doesn't understand are kept untouched. A button opens the vanilla Controls screen for the G key, the team slots and the menu key. This tab only changes your own `keybinds.json`. |
+| Right-click an NPC (up to 96 blocks away) | Select its whole army. It is outlined and frozen. |
+| Left-click | Cycle the formation: circle, grid, line, column, wedge, scatter. |
+| Shift + left-click | Cycle the spacing: 1, 1.5, 2, 3, 4 blocks. |
+| Aim at the ground | Ghost preview of the army where it will stand, facing the way you look. Slots with no ground are outlined red. |
+| Right-click the ground | Place the army. The new spot is where it regroups after a fight. |
+| Shift + right-click | Deselect. |
+| **G** | Start the fight. |
 
-| **Tutorial** | A nine-lesson course (spawn an army, start the fight, difficulty, kits, formations, the Command Stick, teams, keybinds, cleanup). Each lesson explains the idea in plain words and shows the exact commands to type, with what each part means, a Copy button and a Run button, and ticks itself off when it detects you did it. Open it with `/scriptkit tutorial` or `/sktutorial`; the first time you join a world as an operator, a small pop-up offers it (once; it never pauses the game). Progress is kept in `config/scriptkit/tutorial.json`. |
+Left-clicking never hits or mines anything while you hold the stick. Until you pick a formation, the army keeps the shape it has. The formation turns with where you look, and each NPC keeps the same slot while you cycle. An NPC with no team is selected on its own. The ghosts exist only on your screen and are never sent to the server.
 
-Edits are validated on the server (items and enchantments must exist, levels 1-255, names use letters, digits, `-` and `_`) and saved to `combat.json` and `kits.json`, so they survive restarts and can still be hand-edited.
+## Commands
 
-## Names and skins
+All need operator permission.
 
-Armies get procedural gamer-tag names like `PingAbuse`, `BanThis`, `SwordPro` or `xXDarkLordXx` (3-16 characters, unique among NPCs, usable in commands). Set `nameStyle` to `numbered` in `config/scriptkit/config.json` to get `red-1`, `red-2` again. Names show on name tags and in death messages.
+### Armies
 
-Army NPCs without a skin you chose get a random built-in skin (Steve, Alex, Ari, Efe, Kai, Makena, Noor, Sunny, Zuri, in both arm shapes), picked per NPC and stable across restarts, with no account lookups. Give a skin to `/army spawn <count> <team> <kit> <skin>` to override it for the whole army, or list usernames in `skinPool` (config.json) to pick randomly from real accounts. `/npc spawn <name>` still uses the name as the skin unless you pass one.
+| Command | What it does |
+|---|---|
+| `/army spawn <count> <team> [kit] [skin] [formation] [difficulty]` | Spawn NPCs around you (up to `maxArmySize`, default 100). Formation: `circle` (default), `grid`, `line`, `column`, `wedge`, `scatter`. |
+| `/army formation <team\|all> <shape> [spacing]` | Re-arrange a team in place, facing the way you look (spacing 0.8 to 8, default 1.5). |
+| `/army toggle <team\|all> [on\|off]` | Turn AI on or off. `all` also decides how armies spawned afterwards start: after `toggle all off` they spawn frozen. |
+| `/army list` | Teams, sizes, AI state and difficulty. |
+| `/army remove <team\|all>` | Remove NPCs. |
+| `/army team <selector> <team>` | Move NPCs to a team, e.g. `/army team @e[type=scriptkit:npc,distance=..10] red`. |
+| `/army difficulty` | List the presets. |
+| `/army difficulty <team\|all> <level>` | Set an army's difficulty. |
+| `/army kit <team\|all> <kit>` | Give an army a kit. |
+| `/army blocks [on\|off]` | NPC mining and building on or off. |
+| `/army cleanup` | Put back every block NPCs mined or placed. |
 
-## Command Stick
+### Single NPCs
 
-`/scriptkit stick` (operator) gives you the **Command Stick**, an enchanted-looking stick that is also in the creative Tools tab, and the tutorial's last step hands one out. It arranges armies for a scene:
+| Command | What it does |
+|---|---|
+| `/npc spawn <name> [skin] [team] [kit]` | Spawn one NPC at your position. |
+| `/npc remove <name\|all>` | Remove NPCs. |
+| `/npc list` | List NPCs. |
+| `/npc kit <name\|all> <kit>` | Change gear. |
+| `/npc difficulty <name\|all> <level>` | Set difficulty. |
+| `/npc info <name>` | Why is this NPC (not) fighting? Shows its AI state, team, target and why nearby entities are or aren't enemies. |
 
-1. **Right-click an NPC** (even from far away, up to 96 blocks) to select its whole army. The army is outlined in its team color and frozen (AI off) while you arrange it.
-2. **Aim at the ground** and you will see a **ghost preview**: translucent, blue-outlined copies of the army in its formation, standing exactly where it would land (with the same skins, facing the way you look). Slots with no ground to stand on are outlined red. **Right-click** to place it. Its formation stays intact, everyone faces the way you are looking, and the new spot becomes where they regroup to after a fight. Move it as often as you like.
-3. **Left-click** (in the air, at a block, or at an NPC) to **change the formation**: it cycles circle, grid, line, column, wedge and scatter, and the ghosts re-shape immediately. **Shift+left-click** cycles the spacing (1, 1.5, 2, 3, 4 blocks). The formation turns with where you look, so you can swing a line or wedge around before placing it. Until you pick one, the army keeps the shape it has. Everyone keeps the same slot while you cycle.
-4. **Shift+right-click** to deselect. Selecting another army moves the outline to it.
-5. **Press G** (or use `/army toggle all`) to start the fight. The outlines disappear and everyone fights from where you put them.
+### Everything else
 
-Left-clicking never hits or mines anything while you hold the stick, so it can't hurt NPCs by accident. An NPC with no team is selected on its own. Operators only. The ghosts exist only on your screen: they are never sent to the server and can't be hit, pushed or targeted, and they disappear when you put the stick away, deselect, or start the fight. They need ScriptKit on your client.
+| Command | What it does |
+|---|---|
+| `/scriptkit stick [players]` | Give the Command Stick. |
+| `/scriptkit kit <kit> [players]` | Put a kit's items in your inventory. |
+| `/scriptkit menu` | Open the menu (same as **K**). |
+| `/scriptkit tutorial` or `/sktutorial` | Open the tutorial. |
+| `/scriptkit reload` | Reload configs and tell clients to re-read their keybinds. |
 
-## Keybinds (Phase 4)
+Teams are normal Minecraft scoreboard teams. The mod gives new ones a stable color (change it with `/team modify <team> color <color>`). `all` cannot be a team name.
 
-Toggle armies with a key instead of typing `/army toggle`. You need operator (gamemaster) permission, the same as the commands, and ScriptKit on both your client and the server (singleplayer and LAN count: the integrated server does the work). Servers without ScriptKit on your client still work fully with commands.
+## Menu, tutorial and keybinds
 
-**Controls screen** (Options > Controls > ScriptKit, rebindable like any key; changes persist):
+Press **K** (rebindable in Options > Controls > ScriptKit) or run `/scriptkit menu`. Non-operators can look but not change anything.
+
+| Tab | Use it to |
+|---|---|
+| **Difficulty** | Edit presets with sliders, save copies, set the default, apply to an army. |
+| **Kits** | Build kits slot by slot with an item picker and enchantments, and give them to an army, an NPC or yourself. |
+| **Team** | Join a team, create one, or go neutral. On a team, that army leaves you alone; neutral players are attacked by every army. |
+| **Keybinds** | Edit key combos without a text editor. |
+| **Tutorial** | Nine lessons with the real commands, Copy and Run buttons, and tick marks. |
+
+The first time you join a world as an operator, a small pop-up offers the tutorial. It never pauses the game.
+
+### Keybinds
 
 | Key | Default | Does |
 |---|---|---|
-| Toggle all armies | `G` | Flips AI for every NPC: if any are on they all go off, otherwise all go on. |
-| Toggle team 1 / 2 / 3 | unbound | Same, for the teams named in `teamSlots` (see below). |
+| Toggle all armies | **G** | Flip AI for every NPC. |
+| Toggle team 1 / 2 / 3 | unbound | Same, for the teams in `teamSlots`. |
 
-**Combos** go in `config/scriptkit/keybinds.json`, created on first start with *example* bindings (Ctrl+R red, Ctrl+B blue) that you can edit or delete:
+Combos go in `config/scriptkit/keybinds.json` (on your client):
 
 ```json
 {
   "teamSlots": ["red", "blue", "green"],
   "bindings": [
-    { "action": "toggleTeam", "team": "red",  "keys": ["LEFT_CONTROL", "R"] },
-    { "action": "disableAll",                  "keys": ["CTRL", "SHIFT", "1"] }
+    { "action": "toggleTeam", "team": "red", "keys": ["LEFT_CONTROL", "R"] },
+    { "action": "disableAll", "keys": ["CTRL", "SHIFT", "1"] }
   ]
 }
 ```
 
-- **Actions:** `toggleAll`, `toggleTeam`, `enableAll`, `disableAll`, `enableTeam`, `disableTeam`. The explicit enable/disable ones are handy for filming. Team actions need a `"team"`.
-- **Keys:** `A`-`Z`, `0`-`9`, `F1`-`F12`, `SPACE`, `TAB`, arrows, and so on. `CTRL`, `SHIFT` and `ALT` accept either side; `LEFT_CONTROL`, `RIGHT_SHIFT` etc. accept one side only.
-- **Exact matching:** Ctrl+R fires only the Ctrl+R binding. Plain `R` does nothing, and so does Ctrl+Shift+R. Keys no binding uses (like W) are ignored, so you can fire a combo while walking. The vanilla `G` binding never fires while Ctrl, Shift or Alt is held.
-- **Once per press:** holding the keys doesn't repeat. Nothing fires while chat or another screen is open.
-- **Feedback:** the server answers on the action bar with the real result, for example `Red army: ON (30 NPCs)`, or says why nothing happened (no permission, unknown team, no NPCs there).
-- **Bad entries:** a binding with an unknown action, key or team name is skipped with a clear warning in the game log; the rest still load.
-- `teamSlots` names the teams for the three "Toggle team" keys (the Controls entries are labelled team 1-3).
-- **Reload** after editing: `/scriptkit reload` (op). It reloads the server configs and tells every connected client that has ScriptKit to re-read its own `keybinds.json`. On a dedicated server each player edits their own file; the server never reads it.
-- The first time you use `/army toggle` in a session, chat mentions the keybind.
-- The server ignores more than 4 keybind packets per second per player.
+- **Actions:** `toggleAll`, `toggleTeam`, `enableAll`, `disableAll`, `enableTeam`, `disableTeam`. Team actions need a `"team"`.
+- **Keys:** `A`-`Z`, `0`-`9`, `F1`-`F12`, `SPACE`, `TAB`, arrows and so on. `CTRL`, `SHIFT` and `ALT` accept either side.
+- Matching is exact: Ctrl+R fires only for Ctrl+R. Nothing fires while chat or a screen is open, and holding a combo does not repeat.
+- The server answers on the action bar, for example `Red army: ON (30 NPCs)`. It ignores more than 4 keybind packets per second per player.
+- After editing, run `/scriptkit reload`. On a dedicated server each player edits their own file.
+
+## Combat, difficulty and kits
+
+With AI on, each NPC:
+
+- **Targets** the nearest living entity on a different team within `detectionRange`, including players with no team. Teammates and creative players are never targeted. To fight for an army, join its team; to fight them all, stay neutral.
+- **Fights like a player.** It chases with sprint, swings at the weapon's real attack speed, circle-strafes, lands jump crits, and keeps a shield up. Archers keep 10 to 15 blocks away, lead moving targets and back off when pressed.
+- **Bunny hops.** About half of all NPCs (`bunnyHopChance`) hop while sprinting at an enemy, so a group looks like a mix.
+- **Regroups.** With no target left it walks back to its formation spot.
+- **Mines and builds** to reach a target it can't get to: it pillars up, tunnels and staircases down. Chests, beds, unbreakable blocks and anything harder than `maxBreakHardness` are never broken. Every change is logged so `/army cleanup` can undo it.
+- **Is hunted by hostile mobs.** Zombies, skeletons, creepers and the like attack NPCs. NPCs ignore mobs by default (`npcsFightHostileMobs`).
+- **Idles** in place when there's nothing to do, so formations hold.
+
+With AI off, an NPC is completely frozen: it runs nothing and doesn't turn toward players. The state is saved with the NPC.
+
+### Difficulty
+
+| | easy | normal | hard | nightmare |
+|---|---|---|---|---|
+| Damage | x0.6 | x1.0 | x1.6 | x3.0 |
+| Health | x0.8 | x1.0 | x1.3 | x2.0 |
+| Melee accuracy | 45% | 75% | 90% | 100% |
+| Archer accuracy | 50% | 80% | 92% | 100% |
+| Jump-crit chance | 10% | 35% | 50% | 70% |
+| Swing rate | x0.8 | x1.0 | x1.15 | x1.3 |
+| Speed | x1.0 | x1.0 | x1.05 | x1.1 |
+| Shield skill | 30% | 70% | 90% | 100% |
+| Reaction | x0.5 | x1.0 | x1.5 | x2.5 |
+| Detection range | x0.8 | x1.0 | x1.2 | x1.5 |
+
+Edit presets in the Difficulty tab or in `combat.json`; add your own under any name. Against a player in full `god`-kit netherite, a normal NPC does only a few points of damage, so use `hard` or `nightmare` for real danger.
+
+### Kits
+
+Built in: `knight` (iron, sword, shield), `archer` (leather, bow), `god` (maxed netherite with sword and shield) and `none`. Make your own in the Kits tab, or in `config/scriptkit/kits.json`:
+
+```json
+"mainhand": { "id": "minecraft:netherite_sword", "enchantments": { "minecraft:sharpness": 5, "minecraft:fire_aspect": 2 } }
+```
+
+Slots: `head`, `chest`, `legs`, `feet`, `mainhand`, `offhand`. Omitted slots are empty. NPCs drop all their gear when they die.
+
+### Names and skins
+
+Armies get gamer-tag names (`PingAbuse`, `BanThis`, `xXDarkLordXx`). Set `nameStyle` to `numbered` in `config.json` for `red-1`, `red-2`. NPCs without a chosen skin get a random built-in skin, stable across restarts. Give `/army spawn` a skin to override it for the whole army, or list usernames in `skinPool` to pick from real accounts.
+
+## Configuration files
+
+All in `config/scriptkit/`, JSON, created on first run, re-read on server start or `/scriptkit reload`.
+
+### `config.json`
+
+| Option | Default | Meaning |
+|---|---|---|
+| `maxArmySize` | 100 | Largest army one command can spawn. |
+| `friendlyFire` | false | Applied to teams when they are created. |
+| `defaultFormation` | circle | Formation when `/army spawn` has none. |
+| `nameStyle` | generated | `generated` or `numbered`. |
+| `skinPool` | (empty) | Usernames to pick skins from. |
+
+### `combat.json`
+
+| Option | Default | Meaning |
+|---|---|---|
+| `detectionRange` | 32 | Blocks within which NPCs notice enemies. |
+| `retargetIntervalTicks` | 20 | How often each NPC re-picks its target. |
+| `strafe` | true | Circle-strafe in melee. |
+| `block` | true | Use offhand shields. |
+| `hostileMobsAttackNpcs` | true | Hostile mobs attack NPCs. |
+| `npcsFightHostileMobs` | false | NPCs fight mobs after players and enemy NPCs. |
+| `regroupAfterFight` | true | Walk back to the formation spot when there is no target. |
+| `bunnyHopChance` | 0.5 | Fraction of NPCs that bunny hop. |
+| `targetTeamlessPlayers` | true | Players with no team are attacked by every army. |
+| `targetCreativePlayers` | false | Also chase creative players. |
+| `defaultDifficulty` | normal | Difficulty for NPCs without one. |
+| `difficulties` | (4 presets) | The presets above. |
+| `damageMultiplier` | 1.0 | Scales all NPC damage. Lower means longer fights. |
+| `npcsCanHurtPlayers` | true | If false, NPCs never target players. |
+| `playerFriendlyFire` | true | Players can damage NPCs on their own team. |
+| `dropKitOnDeath` | true | Drop gear on death. |
+| `deathMessages` | true | Player-style death messages in chat. |
+| `leaveMessages` | true | "left the game" after a death. |
+| `leaveMessageOnRemove` | false | Also for `/npc remove` and `/army remove`. |
+| `allowBlockBreaking` | true | Stuck NPCs may mine. |
+| `allowBlockPlacing` | true | Stuck NPCs may pillar up. |
+| `maxBreakHardness` | 5.0 | Hardest block they may break (obsidian is safe). |
+| `pillarBlock` | `minecraft:cobblestone` | Block used for pillaring. |
+| `dropMinedBlocks` | false | Mined blocks drop items. |
+
+### `kits.json`, `keybinds.json`, `tutorial.json`
+
+`kits.json` holds your kits (see above). `keybinds.json` and `tutorial.json` are per player and live on the client.
+
+## Troubleshooting
+
+| Problem | Try this |
+|---|---|
+| Can't join, or kicked on join | The player needs the same ScriptKit (and Fabric API) as the server. |
+| "Unknown command" or nothing happens | You are not an operator (`/op <name>`), or the mod isn't on the server. |
+| Menu, G key or ghost preview missing | ScriptKit must be on your client too. Check the Controls screen for a ScriptKit section. |
+| Armies don't fight | Check `/army list` (is AI on?) and `/npc info <name>`. Two armies on the same team never fight each other. Enemies beyond `detectionRange` are ignored. |
+| New armies stand still | `/army toggle all off` was used. Run `/army toggle all on` or press G. |
+| NPCs dug holes or built pillars | `/army cleanup`, then `/army blocks off` to stop it. |
+| Game crashes on start | Check Fabric API is installed and the versions match (1.21.11). Attach `latest.log` to an issue. |
 
 ## Feedback and bugs
 
-Found a bug or have an idea? [Open an issue](https://github.com/Azed1239/scriptkit/issues/new/choose). For a bug, please include what you typed or clicked, the ScriptKit version, whether it was singleplayer or a server, and the relevant part of `logs/latest.log` (or the crash report). For a feature request, describe the scene you are trying to make; that helps more than the feature name.
+Found a bug or have an idea? [Open an issue](https://github.com/Azed1239/scriptkit/issues/new/choose). For a bug, include what you typed or clicked, the ScriptKit version, singleplayer or server, and the relevant part of `logs/latest.log` (or the crash report). For a feature request, describe the scene you are trying to make.
 
 **Known limitations**
+
 - Minecraft 1.21.11 only.
 - Armies and fights only: no scripted scenes (timed movement, dialogue, recording) yet.
 - Tested in singleplayer and on a dev server, not yet on large public servers. Hundreds of NPCs fighting at once, and NPC mining and building, are the likeliest places to find problems.
 
-## Development
+## Building from source
 
-- `./gradlew test` runs unit tests for key-combo matching, `keybinds.json` parsing, key names and the name generator.
-- Starting the client with `-Dscriptkit.debug.ui=true` runs a UI smoke test: it opens the menu on the title screen, shows every tab and the item picker, saves screenshots to `run/screenshots`, and quits.
-- With `-Dscriptkit.debug=true` the dev server also gets `/scriptkit simulate-menu <op|denied> <action> <json>` and `/scriptkit snapshot`.
-- Starting a dev server with `-Dscriptkit.debug=true` adds `/scriptkit simulate <sender> <op|denied> <action> [team]`, which runs the keybind packet handler without a client.
+You need JDK 25 to run Gradle (the mod itself compiles for Java 21).
 
-## Layout
+```
+./gradlew build        # jar in build/libs/
+./gradlew runServer    # dev server (accept the EULA in run/eula.txt first)
+./gradlew runClient    # dev client
+./gradlew test         # unit tests
+```
 
-`dev.scriptkit` – `npc`, `ai`, `command`, `network`, `record`, `platform` (main source set) and `client` (client source set). Version-specific APIs (rendering, payloads, registries) belong in thin wrappers so a later Minecraft 26.x port stays small.
+Developer flags: `-Dscriptkit.debug=true` adds dev-only simulate and snapshot commands on the server; `-Dscriptkit.debug.ui=true` runs a menu smoke test with screenshots; `-Dscriptkit.debug.ghost=true` runs an in-world ghost-preview smoke test.
+
+Code layout: `dev.scriptkit` has `npc`, `ai`, `command`, `network`, `item`, `platform` (main source set) and `client` (client source set). Version-specific code (rendering, payloads, registries) sits in thin wrappers so a port to a newer Minecraft stays small.
 
 ## License
 
-MIT – see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE). Not affiliated with Mojang or Microsoft.
