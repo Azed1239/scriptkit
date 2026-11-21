@@ -2,7 +2,7 @@
 
 A free, open-source (MIT) Fabric mod for scripted Minecraft SMPs: choreographed NPCs and recordable scenes for filming videos on your own server.
 
-**Status:** Phase 0 – empty scaffold that loads. No features yet.
+**Status:** Phase 3 – NPCs, armies and teams, combat AI.
 
 ## Target
 
@@ -51,7 +51,7 @@ All commands need op (gamemaster) permission. NPC names are unique (case-insensi
 
 Teams are vanilla scoreboard teams. When the mod creates one it gets a stable color (change it with `/team modify <team> color <color>`) and the friendly-fire flag from the config. `all` is reserved and cannot be a team name.
 
-With AI on, NPCs wander and look at nearby players (placeholder behaviour). With AI off they stand still and run no goals at all. The state is saved with the NPC.
+With AI on, NPCs fight (see Combat below). With AI off they stand still and run no goals or target scans at all. The state is saved with the NPC.
 
 ### Config
 
@@ -61,7 +61,40 @@ With AI on, NPCs wander and look at nearby players (placeholder behaviour). With
 { "maxArmySize": 100, "friendlyFire": false, "defaultFormation": "circle" }
 ```
 
-`friendlyFire` is applied to teams when they are created; existing teams keep their own setting (`/team modify <team> friendlyFire true`).
+`friendlyFire` is applied to teams when they are created. NPC damage between teammates needs both this flag and the team's own setting to be on, so the default (`false`) always protects teammates, even on teams created before the config existed.
+
+## Combat (Phase 3)
+
+With AI on, each NPC:
+
+- **Targets** the nearest living entity on a *different* scoreboard team within `detectionRange`: other NPCs and players. Teammates, spectators, creative players and players without a team are never targeted, so you can walk among armies while filming. To join a fight, put yourself on a team with `/team join`.
+- **Melee:** chases with vanilla pathfinding (sprinting when far), swings at the weapon's real attack speed (fists fast, swords medium, axes slow), and uses the weapon's damage and knockback. In melee range it circle-strafes, changing direction at random, and sometimes steps back after being hit.
+- **Shield:** with a shield in the offhand it keeps the shield up while an enemy is close, lowers it only to swing, and times its swing to land right after an NPC opponent's attack.
+- **Bow:** keeps 10–15 blocks away, draws fully, leads moving targets, and runs from enemies closer than 6 blocks. Arrows are real projectiles (they can be blocked) but consume no ammo and can't be picked up.
+- **Idle:** with no target it stands still and looks around or at nearby players. It does not wander, so formations hold.
+- **Stuck:** if it can't make progress toward a target it jumps, then repaths, then gives up on that target for 5 seconds.
+
+When an NPC dies, chat shows a player-style death message (for example `red-3 was slain by blue-7`) and a yellow `red-3 left the game`. It drops its kit unless `dropKitOnDeath` is off.
+
+Target scanning is throttled: one shared list of combat-relevant entities per world, rebuilt every 10 ticks, and each NPC re-picks its target every `retargetIntervalTicks`, staggered by entity id.
+
+### Combat config
+
+`config/scriptkit/combat.json`, created on first run and re-read on server start (new options are added to older files automatically):
+
+| Option | Default | Meaning |
+|---|---|---|
+| `detectionRange` | 32 | Blocks within which NPCs notice enemies. |
+| `retargetIntervalTicks` | 20 | How often each NPC re-picks its target. |
+| `strafe` | true | Circle-strafe and step back in melee. |
+| `block` | true | Use offhand shields. |
+| `archerAccuracy` | 0.8 | 0 = wild, 1 = perfect. |
+| `damageMultiplier` | 1.0 | Scales all NPC damage (melee and arrows). Lower = longer fights. |
+| `npcsCanHurtPlayers` | true | If false, NPCs never target players. |
+| `dropKitOnDeath` | true | Drop equipped gear on death. |
+| `deathMessages` | true | Broadcast death messages (also follows the `showDeathMessages` game rule). |
+| `leaveMessages` | true | Broadcast "left the game" after a death. |
+| `leaveMessageOnRemove` | false | Also broadcast "left the game" for `/npc remove` and `/army remove`. |
 
 ## Layout
 

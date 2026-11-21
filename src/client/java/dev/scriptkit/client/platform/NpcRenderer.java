@@ -15,6 +15,11 @@ import net.minecraft.client.renderer.entity.layers.PlayerItemInHandLayer;
 import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.renderer.state.CameraRenderState;
 import net.minecraft.resources.Identifier;
+import net.minecraft.client.model.HumanoidModel;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.HumanoidArm;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemUseAnimation;
 import net.minecraft.world.entity.player.PlayerModelType;
 import net.minecraft.world.entity.player.PlayerSkin;
 
@@ -83,6 +88,27 @@ public class NpcRenderer extends EntityRenderer<ScriptNpc, NpcRenderer.State> {
 			state.showLeftPants = true;
 			state.showRightPants = true;
 			state.showCape = false;
+			state.rightArmPose = armPose(npc, HumanoidArm.RIGHT);
+			state.leftArmPose = armPose(npc, HumanoidArm.LEFT);
+		}
+
+		/** Pose per arm so bow draws and raised shields are visible. */
+		private static HumanoidModel.ArmPose armPose(ScriptNpc npc, HumanoidArm arm) {
+			InteractionHand hand = npc.getMainArm() == arm ? InteractionHand.MAIN_HAND : InteractionHand.OFF_HAND;
+			ItemStack stack = npc.getItemInHand(hand);
+			if (stack.isEmpty()) {
+				return HumanoidModel.ArmPose.EMPTY;
+			}
+			if (npc.isUsingItem() && npc.getUsedItemHand() == hand) {
+				ItemUseAnimation anim = stack.getUseAnimation();
+				if (anim == ItemUseAnimation.BLOCK) {
+					return HumanoidModel.ArmPose.BLOCK;
+				}
+				if (anim == ItemUseAnimation.BOW) {
+					return HumanoidModel.ArmPose.BOW_AND_ARROW;
+				}
+			}
+			return HumanoidModel.ArmPose.ITEM;
 		}
 
 		@Override

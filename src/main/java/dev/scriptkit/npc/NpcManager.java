@@ -13,7 +13,8 @@ public final class NpcManager {
 	public static List<ScriptNpc> all(MinecraftServer server) {
 		List<ScriptNpc> result = new ArrayList<>();
 		for (ServerLevel level : server.getAllLevels()) {
-			result.addAll(level.getEntities(EntityTypeTest.forClass(ScriptNpc.class), npc -> true));
+			// Dying NPCs (death animation) are excluded so counts drop the moment an NPC dies.
+			result.addAll(level.getEntities(EntityTypeTest.forClass(ScriptNpc.class), ScriptNpc::isAlive));
 		}
 		return result;
 	}

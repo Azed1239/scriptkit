@@ -1,5 +1,6 @@
 package dev.scriptkit;
 
+import dev.scriptkit.ai.CombatConfig;
 import dev.scriptkit.command.ArmyCommand;
 import dev.scriptkit.command.NpcCommand;
 import dev.scriptkit.config.ScriptKitConfig;
@@ -20,9 +21,11 @@ public class ScriptKitMod implements ModInitializer {
 	public void onInitialize() {
 		NpcRegistry.register();
 		ScriptKitConfig.load();
+		CombatConfig.load();
 		KitManager.load();
 		ServerLifecycleEvents.SERVER_STARTING.register(server -> {
 			ScriptKitConfig.load();
+			CombatConfig.load();
 			KitManager.load();
 		});
 		CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) -> {

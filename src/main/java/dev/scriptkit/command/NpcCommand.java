@@ -7,6 +7,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import dev.scriptkit.npc.KitManager;
 import dev.scriptkit.npc.NpcManager;
+import dev.scriptkit.npc.NpcMessages;
 import dev.scriptkit.npc.ScriptNpc;
 import java.util.ArrayList;
 import java.util.List;
@@ -112,6 +113,7 @@ public final class NpcCommand {
 			return 0;
 		}
 		for (ScriptNpc npc : list) {
+			NpcMessages.removed(npc);
 			npc.leaveTeam();
 			npc.discard();
 		}

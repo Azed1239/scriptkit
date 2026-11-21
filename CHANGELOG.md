@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+### Phase 3: combat AI
+- Replaced the placeholder wander goal with combat AI in the `ai` package: `NpcTargetGoal` (nearest enemy on another team, staggered re-evaluation), `NpcCombatGoal` (melee chase, weapon attack-speed cooldown, strafing, shield blocking with counter-attack timing, stuck handling; bow kiting with full draw, lead and infinite non-pickup arrows) and idle look-around with no wandering.
+- `TargetCache`: one shared per-world list of combat-relevant entities, rebuilt at most every 10 ticks, so NPCs never scan the world individually.
+- `config/scriptkit/combat.json`: detection range, retarget interval, strafe, block, archer accuracy, damage multiplier, NPCs-can-hurt-players, drop kit on death, death/leave messages.
+- Player-style death messages and yellow "left the game" messages when NPCs die (optional on removal too).
+- NPC attributes: attack speed 4.0 (weapons modify it like for players), knockback, follow range 48.
+- Client renderer shows bow draw and raised-shield arm poses.
+- NPC counts exclude dying NPCs, so `/army list` drops an NPC the moment it dies.
+
+### Fixed
+- Turning AI off and back on left NPCs unable to start new goals (1.21.11 `removeAllGoals` does not stop running goals, so their control flags stayed locked). Running goals are now stopped first.
+- Same-team NPC damage is blocked whenever the config's `friendlyFire` is false, even on teams whose own friendly-fire flag is on (for example teams made before the config existed).
+
 ### Changed
 - NPC walking speed now matches a walking player (about 4.3 blocks/s; was roughly a quarter of that). Movement-speed attribute is 0.33 and the wander goal uses speed modifier 1.0. Already-spawned NPCs keep their old saved speed; respawn them.
 

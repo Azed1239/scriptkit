@@ -1,6 +1,10 @@
 package dev.scriptkit.npc;
 
+import dev.scriptkit.ai.CombatConfig;
 import dev.scriptkit.ai.NpcGoals;
+import dev.scriptkit.config.ScriptKitConfig;
+import java.util.UUID;
+import net.minecraft.world.entity.LivingEntity;
 import dev.scriptkit.platform.NpcRegistry;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -35,6 +39,9 @@ public class ScriptNpc extends PathfinderMob {
 	private String teamName = "";
 	private String kit = "none";
 	private boolean aiEnabled = true;
+	private UUID ignoredTarget;
+	private long ignoreUntil;
+	private int attackCooldown = Integer.MAX_VALUE;
 
 	public ScriptNpc(EntityType<? extends ScriptNpc> type, Level level) {
 		super(type, level);
@@ -72,12 +79,50 @@ public class ScriptNpc extends PathfinderMob {
 	public boolean hurtServer(ServerLevel level, DamageSource source, float amount) {
 		Entity attacker = source.getEntity();
 		if (attacker != null && attacker != this && this.isAlliedTo(attacker)) {
+			// Same-team damage needs both the mod config and the team itself to allow friendly fire,
+			// so teams created before the config existed are still safe by default.
 			PlayerTeam team = this.getTeam();
-			if (team != null && !team.isAllowFriendlyFire()) {
+			if (!ScriptKitConfig.get().friendlyFire || (team != null && !team.isAllowFriendlyFire())) {
 				return false;
 			}
 		}
 		return super.hurtServer(level, source, amount);
+	}
+
+	/** Ticks until this NPC's next melee swing (MAX_VALUE when not fighting). Read by shield users to time counters. */
+	public int getAttackCooldown() {
+		return attackCooldown;
+	}
+
+	public void setAttackCooldown(int ticks) {
+		this.attackCooldown = ticks;
+	}
+
+	/** Ignore {@code target} for {@code ticks} (used when it can't be reached). */
+	public void ignore(LivingEntity target, int ticks) {
+		this.ignoredTarget = target.getUUID();
+		this.ignoreUntil = this.level().getGameTime() + ticks;
+	}
+
+	public boolean isIgnoring(LivingEntity target) {
+		return ignoredTarget != null && this.level().getGameTime() < ignoreUntil && ignoredTarget.equals(target.getUUID());
+	}
+
+	@Override
+	public void die(DamageSource source) {
+		boolean announce = !this.level().isClientSide() && !this.isRemoved() && !this.dead;
+		Component deathMessage = announce ? this.getCombatTracker().getDeathMessage() : null;
+		super.die(source);
+		if (announce && this.level() instanceof ServerLevel serverLevel) {
+			NpcMessages.death(serverLevel, this, deathMessage);
+		}
+	}
+
+	@Override
+	protected void dropCustomDeathLoot(ServerLevel level, DamageSource source, boolean killedByPlayer) {
+		if (CombatConfig.get().dropKitOnDeath) {
+			super.dropCustomDeathLoot(level, source, killedByPlayer);
+		}
 	}
 
 	public static AttributeSupplier.Builder createAttributes() {
@@ -86,7 +131,12 @@ public class ScriptNpc extends PathfinderMob {
 			// Measured on a dev server: with speed modifier 1.0 this walks at about a player's 4.3 blocks/s.
 			// (Mobs need ~3x the attribute value a player has for the same speed.)
 			.add(Attributes.MOVEMENT_SPEED, WALK_SPEED)
-			.add(Attributes.ATTACK_DAMAGE, 1.0);
+			.add(Attributes.ATTACK_DAMAGE, 1.0)
+			// Same base as a player, so held weapons change the swing rate (sword 1.6, axe ~0.9).
+			.add(Attributes.ATTACK_SPEED, 4.0)
+			.add(Attributes.ATTACK_KNOCKBACK, 0.0)
+			// Pathfinding range; must exceed the combat detection range.
+			.add(Attributes.FOLLOW_RANGE, 48.0);
 	}
 
 	/** Convenience factory used by commands. */

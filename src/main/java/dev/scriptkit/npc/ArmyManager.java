@@ -95,6 +95,7 @@ public final class ArmyManager {
 	public static int remove(MinecraftServer server, String team) {
 		List<ScriptNpc> list = select(server, team);
 		for (ScriptNpc npc : list) {
+			NpcMessages.removed(npc);
 			npc.leaveTeam();
 			npc.discard();
 		}
