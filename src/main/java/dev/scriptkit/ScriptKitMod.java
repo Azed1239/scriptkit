@@ -4,6 +4,7 @@ import dev.scriptkit.ai.CombatConfig;
 import dev.scriptkit.command.ArmyCommand;
 import dev.scriptkit.command.NpcCommand;
 import dev.scriptkit.config.ScriptKitConfig;
+import dev.scriptkit.npc.BlockChangeLog;
 import dev.scriptkit.npc.KitManager;
 import dev.scriptkit.platform.NpcRegistry;
 import net.fabricmc.api.ModInitializer;
@@ -27,6 +28,12 @@ public class ScriptKitMod implements ModInitializer {
 			ScriptKitConfig.load();
 			CombatConfig.load();
 			KitManager.load();
+		});
+		ServerLifecycleEvents.SERVER_STARTED.register(BlockChangeLog::load);
+		ServerLifecycleEvents.AFTER_SAVE.register((server, flush, force) -> BlockChangeLog.save(server));
+		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+			BlockChangeLog.save(server);
+			BlockChangeLog.clear();
 		});
 		CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) -> {
 			NpcCommand.register(dispatcher);

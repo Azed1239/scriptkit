@@ -11,7 +11,15 @@
 - Client renderer shows bow draw and raised-shield arm poses.
 - NPC counts exclude dying NPCs, so `/army list` drops an NPC the moment it dies.
 
+### Added
+- Stuck NPCs mine and build toward their target like a player: pillar up by jumping and placing a block, tunnel through blocks in the way, staircase down. They show the right tool or the block in hand while working, and blocks break in vanilla time. Protected: blocks with storage/data, unbreakable or too-hard blocks (`maxBreakHardness`, default 5) and blocks next to fluids. On by default.
+- `/army blocks [on|off]` to toggle mining and building in-game, and a click-to-toggle chat hint after `/army spawn`.
+- `/army cleanup` restores every block NPCs mined or placed (logged per world in `data/scriptkit_block_changes.dat`, so it survives restarts). Blocks changed since by someone else are skipped.
+- `combat.json` options: `allowBlockBreaking`, `allowBlockPlacing`, `maxBreakHardness`, `pillarBlock`, `dropMinedBlocks`.
+
 ### Fixed
+- NPCs now use the real vanilla sprint state when chasing from more than 8 blocks away and when fleeing: sprint particles, sprinting animation, and sprint hits with extra knockback that end the sprint, like a player's. Sprint speed stays at a player's 5.6 blocks/s. They stop sprinting in melee range, while aiming a bow, and when AI is turned off.
+- Archers ran at full speed while drawing and could shoot backwards while running away. Drawing now slows them to a player's item-use speed (20%), running cancels the draw (a mostly drawn bow is released as a weaker early shot first), and arrows are only fired when the head and body face the target. Melee NPCs only swing at targets they face.
 - NPCs ran far faster than players in combat (sprint ~7.9 blocks/s, strafing up to ~11). In 1.21.11 a mob's ground speed grows with the square of its speed setting, which the earlier tuning missed. Walking is now a player's 4.3 blocks/s, sprinting a player's 5.6, and strafing is set as fractions of walking speed. Saved NPCs get the corrected base speed when loaded, so no respawn is needed.
 - Turning AI off and back on left NPCs unable to start new goals (1.21.11 `removeAllGoals` does not stop running goals, so their control flags stayed locked). Running goals are now stopped first.
 - Same-team NPC damage is blocked whenever the config's `friendlyFire` is false, even on teams whose own friendly-fire flag is on (for example teams made before the config existed).

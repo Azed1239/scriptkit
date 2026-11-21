@@ -48,6 +48,8 @@ All commands need op (gamemaster) permission. NPC names are unique (case-insensi
 | `/army remove <team\|all>` | Remove a team's NPCs. |
 | `/army list` | NPC count per team, and how many have AI on. |
 | `/army team <selector> <team>` | Move NPCs to a team, e.g. `/army team @e[type=scriptkit:npc,distance=..10] red`. |
+| `/army blocks [on\|off]` | Turn NPC mining and building on or off (saved to `combat.json`). Without an argument, shows the current state. |
+| `/army cleanup` | Put back every block NPCs mined or placed. Blocks changed since by someone else are left alone. |
 
 Teams are vanilla scoreboard teams. When the mod creates one it gets a stable color (change it with `/team modify <team> color <color>`) and the friendly-fire flag from the config. `all` is reserved and cannot be a team name.
 
@@ -72,7 +74,20 @@ With AI on, each NPC:
 - **Shield:** with a shield in the offhand it keeps the shield up while an enemy is close, lowers it only to swing, and times its swing to land right after an NPC opponent's attack.
 - **Bow:** keeps 10–15 blocks away, draws fully, leads moving targets, and runs from enemies closer than 6 blocks. Arrows are real projectiles (they can be blocked) but consume no ammo and can't be picked up.
 - **Idle:** with no target it stands still and looks around or at nearby players. It does not wander, so formations hold.
-- **Stuck:** if it can't make progress toward a target it jumps, then repaths, then gives up on that target for 5 seconds.
+- **Stuck:** if it can't make progress toward a target it jumps, then repaths, then mines and builds its way there (below), and only then gives up on that target for 5 seconds.
+
+### Mining and building
+
+When normal pathfinding can't reach the target (trapped in a hole, sealed in, target up on a ledge), NPCs work their way out like a player:
+
+- **Pillar up** by jumping and placing a block underneath (cobblestone by default, unlimited supply).
+- **Tunnel** through blocks in the way, and **staircase down** toward targets below.
+- They briefly show the right tool (or the block) in hand, swing, and blocks crack and break in vanilla time for an iron tool.
+- Never broken: blocks with storage or data (chests, beds, signs...), unbreakable blocks, anything harder than `maxBreakHardness` (default 5, so obsidian is safe), and blocks next to water or lava.
+- Mined blocks don't drop items unless `dropMinedBlocks` is on.
+- Every change is logged (saved with the world) so `/army cleanup` can undo it after a take.
+
+`/army spawn` shows a chat hint with a click-to-toggle button and a pointer to `/army cleanup`.
 
 When an NPC dies, chat shows a player-style death message (for example `red-3 was slain by blue-7`) and a yellow `red-3 left the game`. It drops its kit unless `dropKitOnDeath` is off.
 
@@ -95,6 +110,11 @@ Target scanning is throttled: one shared list of combat-relevant entities per wo
 | `deathMessages` | true | Broadcast death messages (also follows the `showDeathMessages` game rule). |
 | `leaveMessages` | true | Broadcast "left the game" after a death. |
 | `leaveMessageOnRemove` | false | Also broadcast "left the game" for `/npc remove` and `/army remove`. |
+| `allowBlockBreaking` | true | Stuck NPCs may mine blocks. |
+| `allowBlockPlacing` | true | Stuck NPCs may pillar up with blocks. |
+| `maxBreakHardness` | 5.0 | Hardest block NPCs may break (stone 1.5, iron block 5, obsidian 50). |
+| `pillarBlock` | `minecraft:cobblestone` | Block used for pillaring. |
+| `dropMinedBlocks` | false | Mined blocks drop as items. |
 
 ## Layout
 

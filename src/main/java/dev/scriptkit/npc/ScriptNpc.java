@@ -5,6 +5,7 @@ import dev.scriptkit.ai.NpcGoals;
 import dev.scriptkit.config.ScriptKitConfig;
 import java.util.UUID;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.item.ItemStack;
 import dev.scriptkit.platform.NpcRegistry;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
@@ -33,13 +34,16 @@ public class ScriptNpc extends PathfinderMob {
 	/** Movement-speed attribute so that goal speed modifier 1.0 equals normal player walking speed. */
 	public static final double WALK_SPEED = Math.sqrt(0.1);
 	/**
-	 * Speed modifier that matches player sprinting (1.3x walking). Mob ground speed grows with the
-	 * square of the speed setting, so the modifier is sqrt(1.3), not 1.3.
+	 * Path speed while in the vanilla sprint state. Sprinting adds +30% to the speed attribute, and mob
+	 * ground speed grows with the square of speed, so 1/sqrt(1.3) lands on a player's 5.6 blocks/s.
 	 */
-	public static final double SPRINT_MODIFIER = Math.sqrt(1.3);
+	public static final double SPRINT_PATH_SPEED = 1.0 / Math.sqrt(1.3);
 
 	private static final EntityDataAccessor<String> DATA_SKIN =
 		SynchedEntityData.defineId(ScriptNpc.class, EntityDataSerializers.STRING);
+	/** Item shown in the main hand instead of the weapon while mining or building (visual only, never dropped). */
+	private static final EntityDataAccessor<ItemStack> DATA_DISPLAY_ITEM =
+		SynchedEntityData.defineId(ScriptNpc.class, EntityDataSerializers.ITEM_STACK);
 
 	private String npcName = "";
 	private String teamName = "";
@@ -154,6 +158,7 @@ public class ScriptNpc extends PathfinderMob {
 	protected void defineSynchedData(SynchedEntityData.Builder builder) {
 		super.defineSynchedData(builder);
 		builder.define(DATA_SKIN, "");
+		builder.define(DATA_DISPLAY_ITEM, ItemStack.EMPTY);
 	}
 
 	@Override
@@ -169,6 +174,16 @@ public class ScriptNpc extends PathfinderMob {
 		this.npcName = name;
 		this.setCustomName(Component.literal(name));
 		this.setCustomNameVisible(true);
+	}
+
+	public ItemStack getDisplayItem() {
+		return this.entityData.get(DATA_DISPLAY_ITEM);
+	}
+
+	public void setDisplayItem(ItemStack stack) {
+		if (!ItemStack.matches(getDisplayItem(), stack)) {
+			this.entityData.set(DATA_DISPLAY_ITEM, stack.copy());
+		}
 	}
 
 	public String getSkinName() {

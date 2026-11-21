@@ -7,7 +7,9 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
+import dev.scriptkit.ai.CombatConfig;
 import dev.scriptkit.config.ScriptKitConfig;
+import dev.scriptkit.npc.BlockChangeLog;
 import dev.scriptkit.npc.ArmyManager;
 import dev.scriptkit.npc.ArmyManager.Formation;
 import dev.scriptkit.npc.KitManager;
@@ -18,7 +20,10 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.commands.arguments.EntityArgument;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.world.entity.Entity;
 
 /** /army spawn | toggle | remove | list | team  (op / gamemaster). */
@@ -64,6 +69,13 @@ public final class ArmyCommand {
 
 		root.then(Commands.literal("list").executes(ArmyCommand::list));
 
+		root.then(Commands.literal("blocks")
+			.executes(c -> blocksStatus(c.getSource()))
+			.then(Commands.literal("on").executes(c -> setBlocks(c.getSource(), true)))
+			.then(Commands.literal("off").executes(c -> setBlocks(c.getSource(), false))));
+
+		root.then(Commands.literal("cleanup").executes(ArmyCommand::cleanup));
+
 		root.then(Commands.literal("team")
 			.then(Commands.argument("targets", EntityArgument.entities())
 				.then(Commands.argument("team", StringArgumentType.word())
@@ -102,7 +114,53 @@ public final class ArmyCommand {
 		}
 		int spawned = ArmyManager.spawn(src.getLevel(), src.getPosition(), src.getRotation().y, count, team, kitName, skin, formation);
 		src.sendSuccess(() -> Component.literal("Spawned " + spawned + " NPC(s) on team '" + team + "'."), true);
+		src.sendSystemMessage(blocksHint());
 		return spawned;
+	}
+
+	/** Chat hint shown after /army spawn: whether NPCs can mine/build, with a click to toggle, and how to undo. */
+	private static Component blocksHint() {
+		boolean on = CombatConfig.get().allowBlockBreaking || CombatConfig.get().allowBlockPlacing;
+		Component toggle = Component.literal(on ? "[Turn off]" : "[Turn on]").withStyle(style -> style
+			.withColor(on ? ChatFormatting.RED : ChatFormatting.GREEN)
+			.withClickEvent(new ClickEvent.RunCommand("/army blocks " + (on ? "off" : "on")))
+			.withHoverEvent(new HoverEvent.ShowText(Component.literal("/army blocks " + (on ? "off" : "on")))));
+		Component cleanup = Component.literal("/army cleanup").withStyle(style -> style
+			.withColor(ChatFormatting.AQUA)
+			.withClickEvent(new ClickEvent.SuggestCommand("/army cleanup"))
+			.withHoverEvent(new HoverEvent.ShowText(Component.literal("Put back every block NPCs mined or placed"))));
+		return on
+			? Component.literal("NPCs can mine and build to reach enemies. ").withStyle(ChatFormatting.GRAY)
+				.append(toggle).append(Component.literal(" Undo their block changes with ").withStyle(ChatFormatting.GRAY))
+				.append(cleanup).append(Component.literal(".").withStyle(ChatFormatting.GRAY))
+			: Component.literal("NPC mining and building is off. ").withStyle(ChatFormatting.GRAY).append(toggle);
+	}
+
+	private static int blocksStatus(CommandSourceStack src) {
+		src.sendSystemMessage(blocksHint());
+		return 1;
+	}
+
+	private static int setBlocks(CommandSourceStack src, boolean on) {
+		CombatConfig cfg = CombatConfig.get();
+		cfg.allowBlockBreaking = on;
+		cfg.allowBlockPlacing = on;
+		CombatConfig.save();
+		src.sendSuccess(() -> Component.literal("NPC mining and building turned " + (on ? "on" : "off") + "."), true);
+		return 1;
+	}
+
+	private static int cleanup(CommandContext<CommandSourceStack> c) {
+		int logged = BlockChangeLog.size();
+		if (logged == 0) {
+			c.getSource().sendSuccess(() -> Component.literal("No NPC block changes to undo."), false);
+			return 0;
+		}
+		int[] result = BlockChangeLog.cleanup(c.getSource().getServer());
+		String msg = "Restored " + result[0] + " block(s)"
+			+ (result[1] > 0 ? "; skipped " + result[1] + " that were changed since by someone else." : ".");
+		c.getSource().sendSuccess(() -> Component.literal(msg), true);
+		return result[0];
 	}
 
 	private static int toggle(CommandContext<CommandSourceStack> c, Boolean state) {

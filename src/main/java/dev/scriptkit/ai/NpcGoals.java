@@ -35,6 +35,7 @@ public final class NpcGoals {
 		if (npc.isUsingItem()) {
 			npc.stopUsingItem();
 		}
+		npc.setSprinting(false);
 		NpcCombatGoal.halt(npc);
 	}
 

@@ -37,13 +37,39 @@ public final class CombatConfig {
 	public boolean leaveMessages = true;
 	/** Also broadcast "left the game" when NPCs are removed by command. */
 	public boolean leaveMessageOnRemove = false;
+	/** Let stuck NPCs mine through blocks toward their target. */
+	public boolean allowBlockBreaking = true;
+	/** Let stuck NPCs pillar up by placing blocks under themselves. */
+	public boolean allowBlockPlacing = true;
+	/** Hardest block NPCs may break (stone 1.5, iron block 5, obsidian 50). Blocks with storage/data are never broken. */
+	public double maxBreakHardness = 5.0;
+	/** Block NPCs place when pillaring (they have an unlimited supply). */
+	public String pillarBlock = "minecraft:cobblestone";
+	/** Whether blocks mined by NPCs drop as items. */
+	public boolean dropMinedBlocks = false;
 
 	public static CombatConfig get() {
 		return instance;
 	}
 
+	private static Path path() {
+		return FabricLoader.getInstance().getConfigDir().resolve("scriptkit").resolve("combat.json");
+	}
+
+	/** Writes the current settings back to combat.json (used by in-game toggles). */
+	public static void save() {
+		try {
+			Files.createDirectories(path().getParent());
+			try (Writer w = Files.newBufferedWriter(path())) {
+				GSON.toJson(instance, w);
+			}
+		} catch (IOException e) {
+			ScriptKitMod.LOGGER.error("Failed to save {}", path(), e);
+		}
+	}
+
 	public static void load() {
-		Path path = FabricLoader.getInstance().getConfigDir().resolve("scriptkit").resolve("combat.json");
+		Path path = path();
 		try {
 			Files.createDirectories(path.getParent());
 			CombatConfig loaded = new CombatConfig();
@@ -59,6 +85,10 @@ public final class CombatConfig {
 			loaded.retargetIntervalTicks = Math.max(2, loaded.retargetIntervalTicks);
 			loaded.archerAccuracy = Math.max(0.0, Math.min(1.0, loaded.archerAccuracy));
 			loaded.damageMultiplier = Math.max(0.0, loaded.damageMultiplier);
+			loaded.maxBreakHardness = Math.max(0.0, loaded.maxBreakHardness);
+			if (loaded.pillarBlock == null || loaded.pillarBlock.isBlank()) {
+				loaded.pillarBlock = "minecraft:cobblestone";
+			}
 			// Rewrite so new options appear in older files.
 			try (Writer w = Files.newBufferedWriter(path)) {
 				GSON.toJson(loaded, w);

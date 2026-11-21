@@ -18,6 +18,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.client.model.HumanoidModel;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.HumanoidArm;
+import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemUseAnimation;
 import net.minecraft.world.entity.player.PlayerModelType;
@@ -90,6 +91,20 @@ public class NpcRenderer extends EntityRenderer<ScriptNpc, NpcRenderer.State> {
 			state.showCape = false;
 			state.rightArmPose = armPose(npc, HumanoidArm.RIGHT);
 			state.leftArmPose = armPose(npc, HumanoidArm.LEFT);
+			// While mining/building, show the tool or block instead of the weapon (like a hotbar swap).
+			ItemStack display = npc.getDisplayItem();
+			if (!display.isEmpty()) {
+				boolean right = npc.getMainArm() == HumanoidArm.RIGHT;
+				this.itemModelResolver.updateForLiving(right ? state.rightHandItemState : state.leftHandItemState, display,
+					right ? ItemDisplayContext.THIRD_PERSON_RIGHT_HAND : ItemDisplayContext.THIRD_PERSON_LEFT_HAND, npc);
+				if (right) {
+					state.rightHandItemStack = display;
+					state.rightArmPose = HumanoidModel.ArmPose.ITEM;
+				} else {
+					state.leftHandItemStack = display;
+					state.leftArmPose = HumanoidModel.ArmPose.ITEM;
+				}
+			}
 		}
 
 		/** Pose per arm so bow draws and raised shields are visible. */

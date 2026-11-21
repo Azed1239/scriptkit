@@ -7,6 +7,7 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
+import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.LivingEntity;
@@ -30,9 +31,12 @@ import net.minecraft.world.phys.Vec3;
  */
 public class NpcCombatGoal extends Goal {
 	private static final Identifier DAMAGE_MOD = Identifier.fromNamespaceAndPath(ScriptKitMod.MOD_ID, "damage_multiplier");
-	private static final double SPRINT = ScriptNpc.SPRINT_MODIFIER;
 	/** A player's walking acceleration per unit of input (speed 0.1). */
 	private static final double PLAYER_WALK = 0.1;
+	/** Players move at 20% speed while using an item (drawing a bow). */
+	private static final float USING_ITEM_SPEED = 0.2F;
+	/** Minimum draw time before an archer will release early when an enemy rushes in. */
+	private static final int PANIC_SHOT_TICKS = 8;
 	private static final double RANGED_MIN = 10.0;
 	private static final double RANGED_MAX = 15.0;
 	/** Archers run (not back-step) when an enemy is closer than this. */
@@ -57,12 +61,15 @@ public class NpcCombatGoal extends Goal {
 	private int multiplierCheck;
 
 	private int stuckCheck = 20;
+	private final NpcTerrainSkills terrain;
+	private boolean digging;
 	private int stuckStage;
 	private Vec3 lastPos = Vec3.ZERO;
 
 	public NpcCombatGoal(ScriptNpc npc) {
 		this.npc = npc;
 		this.random = npc.getRandom();
+		this.terrain = new NpcTerrainSkills(npc);
 		this.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK, Goal.Flag.JUMP));
 	}
 
@@ -95,7 +102,12 @@ public class NpcCombatGoal extends Goal {
 
 	@Override
 	public void stop() {
+		if (digging) {
+			terrain.stop();
+			digging = false;
+		}
 		npc.setAttackCooldown(Integer.MAX_VALUE);
+		npc.setSprinting(false);
 		npc.setAggressive(false);
 		npc.getNavigation().stop();
 		halt(npc);
@@ -123,7 +135,6 @@ public class NpcCombatGoal extends Goal {
 			multiplierCheck = 100;
 			applyDamageMultiplier();
 		}
-		npc.getLookControl().setLookAt(target, 30.0F, 30.0F);
 		if (npc.getMainHandItem().getItem() instanceof BowItem) {
 			rangedTick(level, target);
 		} else {
@@ -136,8 +147,11 @@ public class NpcCombatGoal extends Goal {
 
 	private void meleeTick(ServerLevel level, LivingEntity target, boolean justHurt) {
 		CombatConfig cfg = CombatConfig.get();
+		npc.getLookControl().setLookAt(target, 30.0F, 30.0F);
 		double distSq = npc.distanceToSqr(target);
-		boolean inReach = npc.isWithinMeleeAttackRange(target);
+		// Only hit what we are facing, like a player.
+		boolean closeEnough = npc.isWithinMeleeAttackRange(target);
+		boolean inReach = closeEnough && isFacing(target, 60.0F);
 		if (attackCooldown > 0) {
 			attackCooldown--;
 		}
@@ -159,26 +173,32 @@ public class NpcCombatGoal extends Goal {
 			if (npc.isUsingItem()) {
 				npc.stopUsingItem();
 			}
+			boolean sprintHit = npc.isSprinting();
 			npc.swing(InteractionHand.MAIN_HAND);
-			npc.doHurtTarget(level, target);
+			if (npc.doHurtTarget(level, target) && sprintHit) {
+				sprintKnockback(target);
+			}
 			attackCooldown = attackInterval();
 		}
 
-		if (!inReach && distSq > 9.0) {
-			chase(target, distSq);
+		// Path to the target until it is within arm's reach (also covers targets just out of reach above
+		// or below, e.g. at the edge of a hole, so stuck handling and digging can kick in).
+		if (digging || !closeEnough) {
+			chase(level, target, distSq);
 			return;
 		}
+		setRunning(false);
 		npc.getNavigation().stop();
 		stuckStage = 0;
 		if (!cfg.strafe) {
-			strafe(inReach ? 0.0F : 0.8F, 0.0F);
+			strafe(0.0F, 0.0F);
 			return;
 		}
 		if (justHurt && random.nextFloat() < 0.3F) {
 			retreatTicks = 6 + random.nextInt(8);
 		}
 		// Fractions of player walking speed.
-		float forward = inReach ? (distSq < 1.5 ? -0.5F : 0.0F) : 0.8F;
+		float forward = distSq < 1.5 ? -0.5F : 0.0F;
 		if (retreatTicks > 0) {
 			retreatTicks--;
 			forward = -1.0F;
@@ -231,31 +251,58 @@ public class NpcCombatGoal extends Goal {
 			shotCooldown--;
 		}
 
-		if (dist < FLEE_DISTANCE) {
-			flee(target);
-		} else if (dist > RANGED_MAX || !los) {
-			chase(target, dist * dist);
-		} else {
-			npc.getNavigation().stop();
-			stuckStage = 0;
-			float forward = dist < RANGED_MIN ? -0.7F : 0.0F;
-			float side = cfg.strafe ? nextStrafeSide(0.5F) : 0.0F;
-			strafe(forward, side);
-			npc.lookAt(target, 30.0F, 30.0F);
+		boolean drawing = npc.isUsingItem() && npc.getUsedItemHand() == InteractionHand.MAIN_HAND;
+
+		// Like a player, an archer can't run while drawing: running away or repositioning cancels the
+		// draw, and the NPC looks where it runs, not back at the target.
+		if (dist < FLEE_DISTANCE || dist > RANGED_MAX || !los) {
+			if (drawing) {
+				int drawn = npc.getTicksUsingItem();
+				npc.stopUsingItem();
+				// Enemy closing in mid-draw: loose a weaker early shot first if we are mostly drawn and aimed.
+				if (dist < FLEE_DISTANCE && los && drawn >= PANIC_SHOT_TICKS && isFacing(target, 25.0F)) {
+					shoot(level, target, BowItem.getPowerForTime(drawn), cfg);
+					shotCooldown = 10 + random.nextInt(10);
+				}
+			}
+			if (dist < FLEE_DISTANCE) {
+				flee(target);
+			} else {
+				chase(level, target, dist * dist);
+			}
+			return;
 		}
 
-		if (npc.isUsingItem() && npc.getUsedItemHand() == InteractionHand.MAIN_HAND) {
+		// In position: turn to face the target. While drawing, move at a player's item-use speed.
+		setRunning(false);
+		npc.getNavigation().stop();
+		stuckStage = 0;
+		npc.getLookControl().setLookAt(target, 30.0F, 30.0F);
+		npc.lookAt(target, 30.0F, 30.0F);
+		float slow = drawing ? USING_ITEM_SPEED : 1.0F;
+		float forward = dist < RANGED_MIN ? -0.7F : 0.0F;
+		float side = cfg.strafe ? nextStrafeSide(0.5F) : 0.0F;
+		strafe(forward * slow, side * slow);
+
+		if (drawing) {
 			int drawn = npc.getTicksUsingItem();
-			if (los && drawn >= 20) {
+			if (drawn >= 20 && isFacing(target, 15.0F)) {
 				npc.stopUsingItem();
 				shoot(level, target, BowItem.getPowerForTime(drawn), cfg);
 				shotCooldown = 10 + random.nextInt(15);
-			} else if (!los && drawn > 60) {
-				npc.stopUsingItem();
 			}
-		} else if (shotCooldown <= 0 && los) {
+		} else if (shotCooldown <= 0 && isFacing(target, 45.0F)) {
 			npc.startUsingItem(InteractionHand.MAIN_HAND);
 		}
+	}
+
+	/** True when both the head and the body point at the target (within the given angle for the head). */
+	private boolean isFacing(LivingEntity target, float maxDegrees) {
+		double dx = target.getX() - npc.getX();
+		double dz = target.getZ() - npc.getZ();
+		float yawToTarget = (float) (Mth.atan2(dz, dx) * (180.0 / Math.PI)) - 90.0F;
+		return Math.abs(Mth.wrapDegrees(yawToTarget - npc.getYHeadRot())) <= maxDegrees
+			&& Math.abs(Mth.wrapDegrees(yawToTarget - npc.getYRot())) <= maxDegrees + 30.0F;
 	}
 
 	private void shoot(ServerLevel level, LivingEntity target, float power, CombatConfig cfg) {
@@ -286,9 +333,11 @@ public class NpcCombatGoal extends Goal {
 		repathCooldown = 10 + random.nextInt(6);
 		Vec3 away = DefaultRandomPos.getPosAway(npc, 12, 4, threat.position());
 		if (away != null) {
-			npc.getNavigation().moveTo(away.x, away.y, away.z, SPRINT);
+			setRunning(true);
+			npc.getNavigation().moveTo(away.x, away.y, away.z, ScriptNpc.SPRINT_PATH_SPEED);
 		} else {
 			// Cornered: back off and strafe.
+			setRunning(false);
 			npc.getNavigation().stop();
 			strafe(-1.0F, nextStrafeSide(0.6F));
 		}
@@ -316,11 +365,53 @@ public class NpcCombatGoal extends Goal {
 		return strafing ? strafeSide * speed : 0.0F;
 	}
 
-	/** Throttled pathing toward the target with stuck handling: jump, then repath, then give up. */
-	private void chase(LivingEntity target, double distSq) {
+	/**
+	 * Vanilla sprint state (particles, run animation, sprint-hit knockback). Sprinting adds +30% to the
+	 * speed attribute, so the current path is switched to the matching path speed right away.
+	 */
+	private void setRunning(boolean run) {
+		if (npc.isSprinting() == run) {
+			return;
+		}
+		npc.setSprinting(run);
+		if (npc.getNavigation().isInProgress()) {
+			npc.getNavigation().setSpeedModifier(run ? ScriptNpc.SPRINT_PATH_SPEED : 1.0);
+		}
+	}
+
+	/** A sprinting hit knocks back harder and ends the sprint, like a player's. */
+	private void sprintKnockback(LivingEntity target) {
+		float yaw = npc.getYRot() * ((float) Math.PI / 180.0F);
+		target.knockback(0.5, Mth.sin(yaw), -Mth.cos(yaw));
+		npc.setDeltaMovement(npc.getDeltaMovement().multiply(0.6, 1.0, 0.6));
+		npc.playSound(SoundEvents.PLAYER_ATTACK_KNOCKBACK, 1.0F, 1.0F);
+		setRunning(false);
+	}
+
+	/**
+	 * Throttled pathing toward the target with stuck handling: jump, then repath, then mine/build
+	 * toward it (if allowed), then give up on that target.
+	 */
+	private void chase(ServerLevel level, LivingEntity target, double distSq) {
+		if (digging) {
+			NpcTerrainSkills.Result result = terrain.tick(level, target);
+			if (result == NpcTerrainSkills.Result.CONTINUE) {
+				return;
+			}
+			digging = false;
+			stuckStage = 0;
+			repathCooldown = 0;
+			if (result == NpcTerrainSkills.Result.GIVE_UP) {
+				npc.ignore(target, 100);
+				npc.setTarget(null);
+			}
+			return;
+		}
 		if (--repathCooldown <= 0 || npc.getNavigation().isDone()) {
 			repathCooldown = 10 + random.nextInt(6);
-			npc.getNavigation().moveTo(target, distSq > 64.0 ? SPRINT : 1.0);
+			boolean run = distSq > 64.0;
+			setRunning(run);
+			npc.getNavigation().moveTo(target, run ? ScriptNpc.SPRINT_PATH_SPEED : 1.0);
 		}
 		if (--stuckCheck > 0) {
 			return;
@@ -339,6 +430,11 @@ public class NpcCombatGoal extends Goal {
 		} else if (stuckStage == 2) {
 			npc.getNavigation().stop();
 			repathCooldown = 0;
+		} else if (NpcTerrainSkills.enabled()) {
+			setRunning(false);
+			digging = true;
+			stuckStage = 0;
+			terrain.start();
 		} else {
 			npc.ignore(target, 100);
 			npc.setTarget(null);
