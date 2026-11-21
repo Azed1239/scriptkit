@@ -82,6 +82,21 @@ public final class MenuService {
 
 	// ------------------------------------------------------------------ edits
 
+	/** "Give me this kit": items into the player's inventory. Needs the player, so it lives apart from {@link #edit}. */
+	public static Result giveKit(net.minecraft.server.level.ServerPlayer player, String json) {
+		try {
+			String kit = str(JsonParser.parseString(json == null || json.isBlank() ? "{}" : json).getAsJsonObject(), "kit")
+				.toLowerCase(Locale.ROOT);
+			if (!KitManager.exists(kit)) {
+				return fail("No such kit.");
+			}
+			int n = KitManager.give(player, kit);
+			return n <= 0 ? fail("That kit has no items to give.") : ok("Gave you " + n + " item(s) from kit " + kit + ".");
+		} catch (RuntimeException e) {
+			return fail("That request was not valid.");
+		}
+	}
+
 	/** Applies one edit. Never throws: bad input becomes a failed {@link Result}. */
 	public static Result edit(MinecraftServer server, String op, String json) {
 		try {

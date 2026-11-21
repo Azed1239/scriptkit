@@ -52,6 +52,7 @@ public class KitsPanel implements MenuPanel {
 	private String selectedSlot = "mainhand";
 	private String newName = "";
 	private static final String ONE_NPC = "@npc";
+	private static final String ME = "@me";
 	private String applyTarget = "all";
 	private String npcName = "";
 	private boolean dirty;
@@ -100,7 +101,7 @@ public class KitsPanel implements MenuPanel {
 		if (selected == null || !kits.containsKey(selected)) {
 			selected = kits.containsKey("knight") ? "knight" : kits.keySet().iterator().next();
 		}
-		if (!applyTarget.equals("all") && !applyTarget.equals(ONE_NPC)
+		if (!applyTarget.equals("all") && !applyTarget.equals(ONE_NPC) && !applyTarget.equals(ME)
 			&& teams.stream().noneMatch(t -> t.get("name").getAsString().equals(applyTarget))) {
 			applyTarget = "all";
 		}
@@ -233,10 +234,12 @@ public class KitsPanel implements MenuPanel {
 		// Row B: give the kit to an army.
 		int by = ay + 22;
 		List<String> targets = new ArrayList<>();
+		targets.add(ME);
 		targets.add("all");
 		teams.forEach(t -> targets.add(t.get("name").getAsString()));
 		targets.add(ONE_NPC);
 		boolean oneNpc = applyTarget.equals(ONE_NPC);
+		boolean toMe = applyTarget.equals(ME);
 		int cw = rightW * (oneNpc ? 36 : 58) / 100;
 		CycleButton<String> cycle = CycleButton.<String>builder(this::targetLabel, applyTarget)
 			.withValues(targets)
@@ -259,9 +262,19 @@ public class KitsPanel implements MenuPanel {
 			screen.add(npcBox);
 			giveX += nw + gap;
 		}
-		action(screen, oneNpc ? "Give " + selected : "Give " + selected + " to army", giveX, by, rightX + rightW - giveX,
-			oneNpc ? "Equips the NPC with that exact name (saved first if you changed the kit)."
+		action(screen, toMe ? "Give me " + selected : oneNpc ? "Give " + selected : "Give " + selected + " to army", giveX, by, rightX + rightW - giveX,
+			toMe ? "Puts this kit's items in your inventory (like /give; your current armor is not replaced). Saved first if you changed it."
+				: oneNpc ? "Equips the NPC with that exact name (saved first if you changed the kit)."
 				: "Equips every NPC on that team with this kit (saved first if you changed it).", () -> {
+				if (toMe) {
+					if (dirty) {
+						screen.sendEdit("saveKit", kitJson(selected));
+					}
+					JsonObject mine = new JsonObject();
+					mine.addProperty("kit", selected);
+					screen.sendEdit("giveKit", mine);
+					return;
+				}
 				String target = applyTarget;
 				if (oneNpc) {
 					if (npcName.isBlank()) {
@@ -306,6 +319,9 @@ public class KitsPanel implements MenuPanel {
 	}
 
 	private Component targetLabel(String target) {
+		if (target.equals(ME)) {
+			return Component.literal("me");
+		}
 		if (target.equals("all")) {
 			return Component.literal("all armies");
 		}

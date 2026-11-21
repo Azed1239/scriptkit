@@ -59,6 +59,7 @@ Omitted slots are emptied. NPCs drop all equipped gear when they die, like a pla
 | `/army difficulty` | List the difficulty presets and what each changes. |
 | `/army difficulty <team\|all> <level>` | Set an army's difficulty (also saved with each NPC). |
 | `/army kit <team\|all> <kit>` | Give every NPC on a team (or all) a kit. |
+| `/scriptkit kit <kit> [players]` | Put a kit's items in your inventory (or other players'), like `/give`. Anything that doesn't fit drops at your feet; the armor you are wearing is never replaced. |
 | `/army blocks [on\|off]` | Turn NPC mining and building on or off (saved to `combat.json`). Without an argument, shows the current state. |
 | `/army cleanup` | Put back every block NPCs mined or placed. Blocks changed since by someone else are left alone. |
 
@@ -157,7 +158,7 @@ Press **K** (rebindable in Controls > ScriptKit) or run `/scriptkit menu` to ope
 | Tab | What you can do |
 |---|---|
 | **Difficulty** | Pick a preset and tune every value with sliders (damage, health, accuracies, crit chance, swing rate, speed, shield skill, reaction, range). Save it, save a copy under a new name, reset a built-in preset or delete a custom one, make it the default for new NPCs, and apply it to an army. |
-| **Kits** | Pick a kit and set each of the six slots with the item picker (search by name or id, with icons). Left-click an enchantment to raise its level, right-click to lower it. Save, save as a new kit, reset a built-in kit or delete a custom one, and give the kit to an army, to all NPCs, or to one NPC by name (pick "one NPC by name" in the Give to selector and type the name). |
+| **Kits** | Pick a kit and set each of the six slots with the item picker (search by name or id, with icons). Left-click an enchantment to raise its level, right-click to lower it. Save, save as a new kit, reset a built-in kit or delete a custom one, and give the kit to an army, to all NPCs, to one NPC by name (pick "one NPC by name" in the Give to selector and type the name), or to yourself (pick "me": the items go in your inventory). |
 | **Keybinds** | Edit your key combos without a text editor: choose the action and team, click the key box and press the combo, then Save & reload. Entries the editor doesn't understand are kept untouched. A button opens the vanilla Controls screen for the G key, the team slots and the menu key. This tab only changes your own `keybinds.json`. |
 
 Edits are validated on the server (items and enchantments must exist, levels 1-255, names use letters, digits, `-` and `_`) and saved to `combat.json` and `kits.json`, so they survive restarts and can still be hand-edited.

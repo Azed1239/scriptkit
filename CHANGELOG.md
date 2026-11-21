@@ -6,6 +6,7 @@
 - In-game menu (key K, or `/scriptkit menu`) with Difficulty, Kits and Keybinds tabs. Difficulty: sliders for every preset value, save / save as new / reset / delete, default preset, apply to an army. Kits: six slots with an item picker (search and icons), enchantment editor (left-click +, right-click -), save / save as / reset / delete, give to an army. Keybinds: edit combos with click-to-capture, team slots, save and reload, link to vanilla Controls. Layout adapts down to a 427x240 GUI.
 - Server-checked menu packets (snapshot request, edit, state, open): gamemaster permission, validation of every item, enchantment, level and name, rate limiting, results shown in the menu. Non-operators see the server tabs read-only.
 - Kits can now be saved, overridden and deleted at runtime; `kits.json` stores only custom kits and overrides of built-ins, so built-in updates still apply.
+- Players can give themselves a kit: `/scriptkit kit <kit> [players]` and a "me" choice in the Kits tab's Give to selector. Items go in the inventory like `/give` (overflow drops at your feet, worn armor is not replaced); needs operator permission.
 - The Kits tab can give a kit to one NPC by name (the Give to selector has a "one NPC by name" choice with a name box), as well as to an army or everyone.
 - `/army kit <team|all> <kit>` and `/scriptkit menu`.
 - Procedural army names (`PingAbuse`, `BanThis`, `SwordPro`, `xXDarkLordXx`, ...), unique and 3-16 characters; `nameStyle: numbered` restores `red-1`.

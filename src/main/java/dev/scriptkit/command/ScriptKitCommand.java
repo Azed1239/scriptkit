@@ -28,6 +28,13 @@ public final class ScriptKitCommand {
 
 		root.then(Commands.literal("reload").executes(ScriptKitCommand::reload));
 
+		root.then(Commands.literal("kit")
+			.then(Commands.argument("kit", StringArgumentType.word())
+				.suggests((ctx, b) -> net.minecraft.commands.SharedSuggestionProvider.suggest(KitManager.names(), b))
+				.executes(c -> giveKit(c, java.util.List.of(c.getSource().getPlayerOrException())))
+				.then(Commands.argument("players", net.minecraft.commands.arguments.EntityArgument.players())
+					.executes(c -> giveKit(c, net.minecraft.commands.arguments.EntityArgument.getPlayers(c, "players"))))));
+
 		root.then(Commands.literal("menu").executes(c -> {
 			ServerPlayer player = c.getSource().getPlayer();
 			if (player == null) {
@@ -73,6 +80,27 @@ public final class ScriptKitCommand {
 			: "keybinds reloading on " + clients + " client(s)";
 		c.getSource().sendSuccess(() -> Component.literal("ScriptKit reloaded: config, combat and kits; " + clientsPart + "."), true);
 		return 1;
+	}
+
+	/** /scriptkit kit <kit> [players]: put a kit's items in inventories, like /give. */
+	private static int giveKit(CommandContext<CommandSourceStack> c, java.util.Collection<ServerPlayer> players) {
+		String kit = StringArgumentType.getString(c, "kit");
+		if (!KitManager.exists(kit)) {
+			c.getSource().sendFailure(Component.literal("Unknown kit '" + kit + "'."));
+			return 0;
+		}
+		int total = 0;
+		for (ServerPlayer p : players) {
+			int n = KitManager.give(p, kit);
+			total += Math.max(0, n);
+		}
+		if (total == 0) {
+			c.getSource().sendFailure(Component.literal("That kit has no items to give."));
+			return 0;
+		}
+		int given = total;
+		c.getSource().sendSuccess(() -> Component.literal("Gave kit " + kit + " (" + given + " item(s)) to " + players.size() + " player(s)."), true);
+		return given;
 	}
 
 	private static int simulateMenu(CommandContext<CommandSourceStack> c) {

@@ -22,6 +22,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.item.Item;
@@ -281,6 +282,27 @@ public final class KitManager {
 			mob.setItemSlot(SLOTS[i], stack(kit.get(SLOT_KEYS[i]), enchantments));
 			mob.setDropChance(SLOTS[i], 1.0F);
 		}
+	}
+
+	/**
+	 * Gives a player the kit's items in their inventory (anything that doesn't fit drops at their feet),
+	 * like /give. Current armor is never replaced. Returns how many items were given, or -1 for an unknown kit.
+	 */
+	public static int give(ServerPlayer player, String kitName) {
+		Map<String, KitItem> kit = kits.get(kitName.toLowerCase());
+		if (kit == null) {
+			return -1;
+		}
+		Registry<Enchantment> enchantments = player.level().registryAccess().lookupOrThrow(Registries.ENCHANTMENT);
+		int given = 0;
+		for (String key : SLOT_KEYS) {
+			ItemStack stack = stack(kit.get(key), enchantments);
+			if (!stack.isEmpty()) {
+				player.getInventory().placeItemBackInInventory(stack);
+				given++;
+			}
+		}
+		return given;
 	}
 
 	private static ItemStack stack(KitItem item, Registry<Enchantment> enchantments) {

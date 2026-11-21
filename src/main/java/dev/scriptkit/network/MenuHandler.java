@@ -38,7 +38,9 @@ public final class MenuHandler {
 			sendState(player, new MenuService.Result(false, "You don't have permission to change ScriptKit settings."));
 			return;
 		}
-		MenuService.Result result = MenuService.edit(player.level().getServer(), payload.op(), payload.json());
+		MenuService.Result result = payload.op().equals("giveKit")
+			? MenuService.giveKit(player, payload.json())
+			: MenuService.edit(player.level().getServer(), payload.op(), payload.json());
 		sendState(player, result);
 	}
 
