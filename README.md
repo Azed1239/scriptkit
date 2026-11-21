@@ -37,7 +37,13 @@ All commands need op (gamemaster) permission. NPC names are unique (case-insensi
 
 ### Kits
 
-`config/scriptkit/kits.json` is created on first start with `knight`, `archer` and `none`. Each kit maps `head`, `chest`, `legs`, `feet`, `mainhand`, `offhand` to item ids; omitted slots are emptied. NPCs drop all equipped gear when they die, like a player. The file is re-read on server start.
+Built-in kits: `knight` (iron, sword, shield), `archer` (leather, bow), `god` (maxed-out enchanted netherite with a netherite sword and shield) and `none`. They're always available; `config/scriptkit/kits.json` (written on first start) can override them or add your own. Each kit maps `head`, `chest`, `legs`, `feet`, `mainhand`, `offhand` to an item id, or to an object with enchantments:
+
+```json
+"mainhand": { "id": "minecraft:netherite_sword", "enchantments": { "minecraft:sharpness": 5, "minecraft:fire_aspect": 2 } }
+```
+
+Omitted slots are emptied. NPCs drop all equipped gear when they die, like a player. The file is re-read on server start.
 
 ## Armies and teams (Phase 2)
 
@@ -71,6 +77,7 @@ With AI on, each NPC:
 
 - **Targets** the nearest living entity on a *different* scoreboard team within `detectionRange`: other NPCs and players. Teammates, spectators, creative players and players without a team are never targeted, so you can walk among armies while filming. To join a fight, put yourself on a team with `/team join`.
 - **Melee:** chases with vanilla pathfinding (sprinting when far), swings at the weapon's real attack speed (fists fast, swords medium, axes slow), and uses the weapon's damage and knockback. In melee range it circle-strafes, changing direction at random, and sometimes steps back after being hit.
+- **Critical hits:** sometimes (`critChance`) they hop just before a swing and strike on the way down, like a player's jump-crit: 1.5x damage, crit particles and sound.
 - **Shield:** with a shield in the offhand it keeps the shield up while an enemy is close, lowers it only to swing, and times its swing to land right after an NPC opponent's attack.
 - **Bow:** keeps 10–15 blocks away, draws fully, leads moving targets, and runs from enemies closer than 6 blocks. Arrows are real projectiles (they can be blocked) but consume no ammo and can't be picked up.
 - **Idle:** with no target it stands still and looks around or at nearby players. It does not wander, so formations hold.
@@ -106,6 +113,8 @@ Target scanning is throttled: one shared list of combat-relevant entities per wo
 | `archerAccuracy` | 0.8 | 0 = wild, 1 = perfect. |
 | `damageMultiplier` | 1.0 | Scales all NPC damage (melee and arrows). Lower = longer fights. |
 | `npcsCanHurtPlayers` | true | If false, NPCs never target players. |
+| `playerFriendlyFire` | true | Players can damage NPCs on their own team (accidental hits count). |
+| `critChance` | 0.35 | Chance a melee NPC goes for a jump-crit before a swing. 0 turns crits off. |
 | `dropKitOnDeath` | true | Drop equipped gear on death. |
 | `deathMessages` | true | Broadcast death messages (also follows the `showDeathMessages` game rule). |
 | `leaveMessages` | true | Broadcast "left the game" after a death. |

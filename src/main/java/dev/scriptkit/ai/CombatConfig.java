@@ -29,6 +29,10 @@ public final class CombatConfig {
 	public double damageMultiplier = 1.0;
 	/** If false, NPCs never target players. */
 	public boolean npcsCanHurtPlayers = true;
+	/** Players can damage NPCs on their own team (accidental friendly fire). */
+	public boolean playerFriendlyFire = true;
+	/** Chance (0-1) that a melee NPC jumps before a swing and lands a critical hit on the way down. */
+	public double critChance = 0.35;
 	/** Drop the equipped kit on death, like a player. */
 	public boolean dropKitOnDeath = true;
 	/** Broadcast a vanilla-style death message (also respects the showDeathMessages game rule). */
@@ -85,6 +89,7 @@ public final class CombatConfig {
 			loaded.retargetIntervalTicks = Math.max(2, loaded.retargetIntervalTicks);
 			loaded.archerAccuracy = Math.max(0.0, Math.min(1.0, loaded.archerAccuracy));
 			loaded.damageMultiplier = Math.max(0.0, loaded.damageMultiplier);
+			loaded.critChance = Math.max(0.0, Math.min(1.0, loaded.critChance));
 			loaded.maxBreakHardness = Math.max(0.0, loaded.maxBreakHardness);
 			if (loaded.pillarBlock == null || loaded.pillarBlock.isBlank()) {
 				loaded.pillarBlock = "minecraft:cobblestone";

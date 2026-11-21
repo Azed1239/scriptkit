@@ -5,6 +5,7 @@ import dev.scriptkit.ai.NpcGoals;
 import dev.scriptkit.config.ScriptKitConfig;
 import java.util.UUID;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import dev.scriptkit.platform.NpcRegistry;
 import net.minecraft.network.chat.Component;
@@ -89,11 +90,18 @@ public class ScriptNpc extends PathfinderMob {
 	public boolean hurtServer(ServerLevel level, DamageSource source, float amount) {
 		Entity attacker = source.getEntity();
 		if (attacker != null && attacker != this && this.isAlliedTo(attacker)) {
-			// Same-team damage needs both the mod config and the team itself to allow friendly fire,
-			// so teams created before the config existed are still safe by default.
-			PlayerTeam team = this.getTeam();
-			if (!ScriptKitConfig.get().friendlyFire || (team != null && !team.isAllowFriendlyFire())) {
-				return false;
+			if (attacker instanceof Player) {
+				// Players can hurt NPCs on their own team (accidental friendly fire) unless turned off.
+				if (!CombatConfig.get().playerFriendlyFire) {
+					return false;
+				}
+			} else {
+				// NPC-vs-NPC same-team damage needs both the mod config and the team itself to allow it,
+				// so teams created before the config existed are still safe by default.
+				PlayerTeam team = this.getTeam();
+				if (!ScriptKitConfig.get().friendlyFire || (team != null && !team.isAllowFriendlyFire())) {
+					return false;
+				}
 			}
 		}
 		return super.hurtServer(level, source, amount);
@@ -159,6 +167,14 @@ public class ScriptNpc extends PathfinderMob {
 		super.defineSynchedData(builder);
 		builder.define(DATA_SKIN, "");
 		builder.define(DATA_DISPLAY_ITEM, ItemStack.EMPTY);
+	}
+
+	@Override
+	public void aiStep() {
+		// Vanilla only advances the arm-swing timer for monsters and players; without this the
+		// sword swing never animates on clients.
+		this.updateSwingTime();
+		super.aiStep();
 	}
 
 	@Override

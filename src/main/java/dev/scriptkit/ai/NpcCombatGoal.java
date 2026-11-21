@@ -4,6 +4,7 @@ import dev.scriptkit.ScriptKitMod;
 import dev.scriptkit.npc.ScriptNpc;
 import java.util.EnumSet;
 import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.protocol.game.ClientboundAnimatePacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
@@ -31,6 +32,10 @@ import net.minecraft.world.phys.Vec3;
  */
 public class NpcCombatGoal extends Goal {
 	private static final Identifier DAMAGE_MOD = Identifier.fromNamespaceAndPath(ScriptKitMod.MOD_ID, "damage_multiplier");
+	private static final Identifier CRIT_MOD = Identifier.fromNamespaceAndPath(ScriptKitMod.MOD_ID, "critical_hit");
+	/** Jump this many ticks before the swing is ready so it lands on the way down (jump apex is ~6 ticks). */
+	private static final int CRIT_JUMP_LEAD = 6;
+	private static final int CRIT_MAX_WAIT = 14;
 	/** A player's walking acceleration per unit of input (speed 0.1). */
 	private static final double PLAYER_WALK = 0.1;
 	/** Players move at 20% speed while using an item (drawing a bow). */
@@ -50,6 +55,9 @@ public class NpcCombatGoal extends Goal {
 
 	private int attackCooldown;
 	private int counterWait;
+	private boolean critPending;
+	private boolean critTried;
+	private int critWait;
 	private int repathCooldown;
 	private int strafeTicks;
 	private float strafeSide = 1.0F;
@@ -168,14 +176,43 @@ public class NpcCombatGoal extends Goal {
 
 		updateShield(hasShield, distSq, justHurt, holdForCounter);
 
-		if (inReach && attackCooldown <= 0 && !holdForCounter) {
+		// Jump-crit like a player: sometimes hop just before the swing is ready and strike while
+		// falling. If the jump fails (ceiling, water) the swing goes ahead normally after a short wait.
+		if (critPending) {
+			critWait++;
+		} else if (!critTried && attackCooldown <= CRIT_JUMP_LEAD && attackCooldown >= 3 && distSq < 9.0
+			&& npc.onGround() && !npc.isInWater() && !npc.isSprinting()) {
+			critTried = true; // one roll per swing
+			if (random.nextFloat() < cfg.critChance) {
+				npc.getJumpControl().jump();
+				critPending = true;
+				critWait = 0;
+			}
+		}
+		boolean falling = !npc.onGround() && npc.getDeltaMovement().y < 0.0;
+		boolean waitForFall = critPending && !falling && critWait < CRIT_MAX_WAIT;
+
+		if (inReach && attackCooldown <= 0 && !holdForCounter && !waitForFall) {
 			counterWait = 0;
 			if (npc.isUsingItem()) {
 				npc.stopUsingItem();
 			}
 			boolean sprintHit = npc.isSprinting();
+			boolean crit = critPending && falling && !sprintHit && !npc.isInWater();
+			critPending = false;
+			critTried = false;
 			npc.swing(InteractionHand.MAIN_HAND);
-			if (npc.doHurtTarget(level, target) && sprintHit) {
+			if (crit) {
+				setCritBonus(true);
+			}
+			boolean hit = npc.doHurtTarget(level, target);
+			if (crit) {
+				setCritBonus(false);
+				if (hit) {
+					critEffects(level, target);
+				}
+			}
+			if (hit && sprintHit) {
 				sprintKnockback(target);
 			}
 			attackCooldown = attackInterval();
@@ -377,6 +414,26 @@ public class NpcCombatGoal extends Goal {
 		if (npc.getNavigation().isInProgress()) {
 			npc.getNavigation().setSpeedModifier(run ? ScriptNpc.SPRINT_PATH_SPEED : 1.0);
 		}
+	}
+
+	/** +50% attack damage for one swing (vanilla critical hit), on top of the damage multiplier. */
+	private void setCritBonus(boolean on) {
+		AttributeInstance inst = npc.getAttribute(Attributes.ATTACK_DAMAGE);
+		if (inst == null) {
+			return;
+		}
+		inst.removeModifier(CRIT_MOD);
+		if (on) {
+			inst.addTransientModifier(new AttributeModifier(CRIT_MOD, 0.5, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL));
+		}
+	}
+
+	/** Crit particles on the target and the crit sound, exactly as for a player's critical hit. */
+	private void critEffects(ServerLevel level, LivingEntity target) {
+		level.getChunkSource().sendToTrackingPlayersAndSelf(target,
+			new ClientboundAnimatePacket(target, ClientboundAnimatePacket.CRITICAL_HIT));
+		level.playSound(null, npc.getX(), npc.getY(), npc.getZ(), SoundEvents.PLAYER_ATTACK_CRIT,
+			npc.getSoundSource(), 1.0F, 1.0F);
 	}
 
 	/** A sprinting hit knocks back harder and ends the sprint, like a player's. */
