@@ -1,0 +1,26 @@
+{
+	"schemaVersion": 1,
+	"id": "scriptkit",
+	"version": "${version}",
+	"name": "ScriptKit",
+	"description": "Tools for scripted Minecraft SMPs: choreographed NPCs and recordable scenes for filming on your own server.",
+	"authors": [
+		"ScriptKit contributors"
+	],
+	"license": "MIT",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"dev.scriptkit.ScriptKitMod"
+		],
+		"client": [
+			"dev.scriptkit.client.ScriptKitClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}

@@ -1,0 +1,34 @@
+package dev.scriptkit;
+
+import dev.scriptkit.command.ArmyCommand;
+import dev.scriptkit.command.NpcCommand;
+import dev.scriptkit.config.ScriptKitConfig;
+import dev.scriptkit.npc.KitManager;
+import dev.scriptkit.platform.NpcRegistry;
+import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/** Common (server + client) entrypoint. */
+public class ScriptKitMod implements ModInitializer {
+	public static final String MOD_ID = "scriptkit";
+	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+
+	@Override
+	public void onInitialize() {
+		NpcRegistry.register();
+		ScriptKitConfig.load();
+		KitManager.load();
+		ServerLifecycleEvents.SERVER_STARTING.register(server -> {
+			ScriptKitConfig.load();
+			KitManager.load();
+		});
+		CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) -> {
+			NpcCommand.register(dispatcher);
+			ArmyCommand.register(dispatcher);
+		});
+		LOGGER.info("ScriptKit initialized (common)");
+	}
+}
