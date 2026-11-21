@@ -1,0 +1,4 @@
+accessWidener v2 named
+
+# Lets ScriptKit add a targeting goal to hostile mobs so they notice NPCs (see HostileMobs).
+accessible field net/minecraft/world/entity/Mob targetSelector Lnet/minecraft/world/entity/ai/goal/GoalSelector;

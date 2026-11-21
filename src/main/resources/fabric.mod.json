@@ -9,6 +9,7 @@
 	],
 	"license": "MIT",
 	"environment": "*",
+	"accessWidener": "scriptkit.accesswidener",
 	"entrypoints": {
 		"main": [
 			"dev.scriptkit.ScriptKitMod"

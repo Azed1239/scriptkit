@@ -82,6 +82,7 @@ With AI on, NPCs fight (see Combat below). With AI off they stand still and run 
 With AI on, each NPC:
 
 - **Targets** (shown by `/npc info`) the nearest living entity on a *different* scoreboard team within `detectionRange`: other NPCs and players. Teammates, spectators, creative players (unless `targetCreativePlayers`) and players without a team are never targeted, so you can walk among armies while filming. Enemies farther than `detectionRange` are not noticed either: when one army wipes out another, the survivors go idle unless another enemy is within range. To join a fight, put yourself on a team with `/team join`.
+- **Hostile mobs:** zombies, skeletons, creepers, spiders and slimes attack NPCs the way they attack players (creepers swell and explode next to them), so mobs can hunt and kill NPCs. NPCs with AI on fight back, but players and enemy NPCs always come first: an NPC only picks a hostile mob when no player or enemy NPC is in range, and drops it as soon as one appears. Endermen are left alone.
 - **Melee:** chases with vanilla pathfinding (sprinting when far), swings at the weapon's real attack speed (fists fast, swords medium, axes slow), and uses the weapon's damage and knockback. In melee range it circle-strafes, changing direction at random, and sometimes steps back after being hit.
 - **Critical hits:** sometimes (`critChance`) they hop just before a swing and strike on the way down, like a player's jump-crit: 1.5x damage, crit particles and sound.
 - **Shield:** with a shield in the offhand it keeps the shield up while an enemy is close, lowers it only to swing, and times its swing to land right after an NPC opponent's attack.
@@ -135,6 +136,8 @@ Against a player in full enchanted netherite (the `god` kit) a normal NPC lands 
 | `retargetIntervalTicks` | 20 | How often each NPC re-picks its target. |
 | `strafe` | true | Circle-strafe and step back in melee. |
 | `block` | true | Use offhand shields. |
+| `hostileMobsAttackNpcs` | true | Hostile mobs attack NPCs. |
+| `npcsFightHostileMobs` | true | NPCs with AI on fight hostile mobs (after players and enemy NPCs). |
 | `targetCreativePlayers` | false | Also chase and swing at players in creative mode (they can't be hurt). |
 | `defaultDifficulty` | normal | Difficulty for NPCs that don't have one set. |
 | `difficulties` | (4 presets) | The presets above: accuracy, crit chance, damage, health, speed and more. |

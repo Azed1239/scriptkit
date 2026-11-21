@@ -5,6 +5,7 @@ import java.util.EnumSet;
 import java.util.List;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.monster.Enemy;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.entity.player.Player;
 
@@ -65,9 +66,20 @@ public class NpcTargetGoal extends Goal {
 		if (best == null || best == current) {
 			return;
 		}
-		if (current == null || npc.distanceTo(best) + SWITCH_MARGIN < npc.distanceTo(current)) {
+		// Players and enemy NPCs always come before hostile mobs: never swap an enemy for a mob, and
+		// drop a mob as soon as an enemy shows up, however far away it is.
+		if (current != null && !isHostileMob(current, cfg) && isHostileMob(best, cfg)) {
+			return;
+		}
+		if (current == null || (isHostileMob(current, cfg) && !isHostileMob(best, cfg))
+			|| npc.distanceTo(best) + SWITCH_MARGIN < npc.distanceTo(current)) {
 			npc.setTarget(best);
 		}
+	}
+
+	/** A hostile mob (zombie, creeper, ...) that NPCs only fight when nothing better is around. */
+	static boolean isHostileMob(LivingEntity e, CombatConfig cfg) {
+		return cfg.npcsFightHostileMobs && e instanceof Enemy && !(e instanceof Player);
 	}
 
 	private LivingEntity findNearest(CombatConfig cfg) {
@@ -75,16 +87,25 @@ public class NpcTargetGoal extends Goal {
 			return null;
 		}
 		List<LivingEntity> candidates = TargetCache.candidates(level);
+		// Nearest player / enemy NPC first; the nearest hostile mob only if there is none.
 		LivingEntity best = null;
+		LivingEntity bestMob = null;
 		double bestSq = Double.MAX_VALUE;
+		double bestMobSq = Double.MAX_VALUE;
 		for (LivingEntity e : candidates) {
 			double d = npc.distanceToSqr(e);
-			if (d < bestSq && isValidTarget(npc, e, cfg)) {
-				best = e;
-				bestSq = d;
+			boolean mob = isHostileMob(e, cfg);
+			if (d < (mob ? bestMobSq : bestSq) && isValidTarget(npc, e, cfg)) {
+				if (mob) {
+					bestMob = e;
+					bestMobSq = d;
+				} else {
+					best = e;
+					bestSq = d;
+				}
 			}
 		}
-		return best;
+		return best != null ? best : bestMob;
 	}
 
 	/** Why an entity is not a valid target (or {@link Reject#NONE} if it is). Cheap enough for the hot path. */
@@ -124,14 +145,18 @@ public class NpcTargetGoal extends Goal {
 		if (e.level() != npc.level()) {
 			return Reject.OTHER_DIMENSION;
 		}
-		if (npc.getTeam() == null) {
-			return Reject.NPC_NO_TEAM;
-		}
-		if (e.getTeam() == null) {
-			return Reject.TARGET_NO_TEAM;
-		}
-		if (npc.isAlliedTo(e)) {
-			return Reject.SAME_TEAM;
+		// Hostile mobs are enemies of every NPC, on any team (or none), unless turned off in combat.json.
+		boolean hostileMob = isHostileMob(e, cfg);
+		if (!hostileMob) {
+			if (npc.getTeam() == null) {
+				return Reject.NPC_NO_TEAM;
+			}
+			if (e.getTeam() == null) {
+				return Reject.TARGET_NO_TEAM;
+			}
+			if (npc.isAlliedTo(e)) {
+				return Reject.SAME_TEAM;
+			}
 		}
 		if (e instanceof Player p) {
 			if (p.isSpectator()) {

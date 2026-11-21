@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Mobs and NPCs
+- Hostile mobs (zombies, skeletons, creepers, spiders, slimes; not endermen) now notice and attack NPCs, so a creeper next to an NPC swells and explodes. They used to ignore NPCs because vanilla targeting only looks for players. Done with an extra target goal added when a mob loads, plus an access widener for `Mob.targetSelector`.
+- NPCs with AI on fight back against hostile mobs, but players and enemy NPCs always take priority: a mob is only chosen when no enemy is in range and is dropped as soon as one appears. Options `hostileMobsAttackNpcs` and `npcsFightHostileMobs` (both on by default) in `combat.json`.
+
 ### Phase 5: menu UI, procedural names and skins
 - In-game menu (key K, or `/scriptkit menu`) with Difficulty, Kits and Keybinds tabs. Difficulty: sliders for every preset value, save / save as new / reset / delete, default preset, apply to an army. Kits: six slots with an item picker (search and icons), enchantment editor (left-click +, right-click -), save / save as / reset / delete, give to an army. Keybinds: edit combos with click-to-capture, team slots, save and reload, link to vanilla Controls. Layout adapts down to a 427x240 GUI.
 - Server-checked menu packets (snapshot request, edit, state, open): gamemaster permission, validation of every item, enchantment, level and name, rate limiting, results shown in the menu. Non-operators see the server tabs read-only.

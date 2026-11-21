@@ -1,6 +1,7 @@
 package dev.scriptkit;
 
 import dev.scriptkit.ai.CombatConfig;
+import dev.scriptkit.ai.HostileMobs;
 import dev.scriptkit.command.ArmyCommand;
 import dev.scriptkit.command.NpcCommand;
 import dev.scriptkit.command.ScriptKitCommand;
@@ -23,6 +24,7 @@ public class ScriptKitMod implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		NpcRegistry.register();
+		HostileMobs.register();
 		ScriptKitNetworking.register();
 		ScriptKitConfig.load();
 		CombatConfig.load();

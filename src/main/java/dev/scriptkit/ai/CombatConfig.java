@@ -34,6 +34,10 @@ public final class CombatConfig {
 	public String defaultDifficulty = Difficulty.NORMAL;
 	/** Named difficulty presets. Edit them or add your own; commands accept any name here. */
 	public Map<String, Difficulty> difficulties = Difficulty.defaults();
+	/** Hostile mobs (zombies, skeletons, creepers, spiders...) attack NPCs the way they attack players. */
+	public boolean hostileMobsAttackNpcs = true;
+	/** NPCs with AI on treat hostile mobs as enemies and fight back, whatever team they are on. */
+	public boolean npcsFightHostileMobs = true;
 	/** Also target players in creative mode (they can't be hurt, but NPCs will chase and swing at them). */
 	public boolean targetCreativePlayers = false;
 	/** Players can damage NPCs on their own team (accidental friendly fire). */
