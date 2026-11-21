@@ -5,6 +5,7 @@ import com.mojang.blaze3d.platform.Window;
 import dev.scriptkit.ScriptKitMod;
 import dev.scriptkit.client.keybinds.KeybindsConfig.Binding;
 import dev.scriptkit.client.platform.ClientNetworking;
+import dev.scriptkit.client.ui.ClientMenu;
 import dev.scriptkit.client.ui.ScriptKitScreen;
 import dev.scriptkit.network.ArmyAction;
 import dev.scriptkit.network.ArmyActionPayload;
@@ -51,7 +52,7 @@ public final class ClientKeybinds {
 		KeyMapping.Category category = KeyMapping.Category.register(Identifier.fromNamespaceAndPath(ScriptKitMod.MOD_ID, "main"));
 		toggleAll = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.scriptkit.toggle_all", InputConstants.Type.KEYSYM, G, category));
 		openMenu = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.scriptkit.open_menu", InputConstants.Type.KEYSYM, K, category));
-		ClientNetworking.registerMenuReceivers(ScriptKitScreen::open, ScriptKitScreen::onStatePacket);
+		ClientNetworking.registerMenuReceivers(ScriptKitScreen::open, ClientMenu::onStatePacket);
 		teamSlotKeys = new KeyMapping[KeybindsConfig.TEAM_SLOTS];
 		for (int i = 0; i < teamSlotKeys.length; i++) {
 			teamSlotKeys[i] = KeyBindingHelper.registerKeyBinding(new KeyMapping(
@@ -133,7 +134,7 @@ public final class ClientKeybinds {
 
 		boolean modifier = ComboMatcher.anyModifierDown(down);
 		fireVanilla(0, toggleAll, modifier, () -> send(mc, ArmyAction.TOGGLE_ALL, ""));
-		fireVanilla(1 + KeybindsConfig.TEAM_SLOTS, openMenu, modifier, ScriptKitScreen::open);
+		fireVanilla(1 + KeybindsConfig.TEAM_SLOTS, openMenu, modifier, () -> ScriptKitScreen.open(""));
 		for (int i = 0; i < teamSlotKeys.length; i++) {
 			int slot = i;
 			fireVanilla(1 + i, teamSlotKeys[i], modifier, () -> {

@@ -77,6 +77,7 @@ public final class DebugUi {
 		root.addProperty("ok", true);
 		root.addProperty("message", "");
 		root.addProperty("defaultDifficulty", "normal");
+		root.addProperty("myTeam", "red");
 		JsonObject diffs = new JsonObject();
 		Difficulty.defaults().forEach((name, d) -> diffs.add(name, GSON.toJsonTree(d)));
 		diffs.add("brutal", GSON.toJsonTree(new Difficulty()));

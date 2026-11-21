@@ -9,6 +9,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.player.Player;
 
 /**
  * Per-world list of entities that can take part in fights (alive and on a scoreboard team).
@@ -29,9 +30,11 @@ public final class TargetCache {
 		if (snap == null || now - snap.gameTime() >= REFRESH_TICKS || now < snap.gameTime()) {
 			List<LivingEntity> list = new ArrayList<>();
 			boolean hostiles = CombatConfig.get().npcsFightHostileMobs;
+			boolean neutralPlayers = CombatConfig.get().targetTeamlessPlayers;
 			for (Entity e : level.getAllEntities()) {
 				if (e instanceof LivingEntity living && living.isAlive()
-					&& (living.getTeam() != null || (hostiles && living instanceof Enemy))) {
+					&& (living.getTeam() != null || (hostiles && living instanceof Enemy)
+						|| (neutralPlayers && living instanceof Player))) {
 					list.add(living);
 				}
 			}

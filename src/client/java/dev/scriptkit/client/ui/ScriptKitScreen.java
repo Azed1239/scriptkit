@@ -18,14 +18,17 @@ import net.minecraft.network.chat.Component;
  * keybinds.json. Armies and NPCs are still created with commands.
  */
 public class ScriptKitScreen extends Screen {
-	public enum Tab { DIFFICULTY, KITS, KEYBINDS }
+	public enum Tab { DIFFICULTY, KITS, TEAM, KEYBINDS, GUIDE }
 
 	/** The open menu, so state packets can reach it. */
 	private static ScriptKitScreen current;
 
 	private final DifficultyPanel difficulty = new DifficultyPanel();
 	private final KitsPanel kits = new KitsPanel();
+	private final TeamPanel team = new TeamPanel();
 	private final KeybindsPanel keybinds = new KeybindsPanel();
+	private final GuidePanel guide = new GuidePanel();
+	private int refreshTicks;
 	private Tab tab = Tab.DIFFICULTY;
 	private JsonObject state;
 	private String status = "";
@@ -40,16 +43,25 @@ public class ScriptKitScreen extends Screen {
 	// ------------------------------------------------------------------ opening and state
 
 	/** Opens the menu and asks the server for its data. */
-	public static void open() {
+	public static void open(String tabName) {
 		Minecraft mc = Minecraft.getInstance();
 		ScriptKitScreen screen = new ScriptKitScreen(mc.screen);
+		if (tabName != null && !tabName.isEmpty()) {
+			for (Tab t : Tab.values()) {
+				if (t.name().equalsIgnoreCase(tabName)) {
+					screen.tab = t;
+				}
+			}
+		}
 		mc.setScreen(screen);
 		if (ClientNetworking.canSendMenu()) {
 			ClientNetworking.sendMenuRequest();
 		} else {
 			screen.status = "This server doesn't have ScriptKit: showing the Keybinds tab only.";
 			screen.statusOk = false;
-			screen.tab = Tab.KEYBINDS;
+			if (screen.tab != Tab.KEYBINDS && screen.tab != Tab.GUIDE) {
+				screen.tab = Tab.KEYBINDS;
+			}
 			screen.rebuildWidgets();
 		}
 	}
@@ -75,7 +87,9 @@ public class ScriptKitScreen extends Screen {
 		}
 		difficulty.onState(state);
 		kits.onState(state);
+		team.onState(state);
 		keybinds.onState(state);
+		guide.onState(state);
 		rebuildWidgets();
 	}
 
@@ -84,7 +98,8 @@ public class ScriptKitScreen extends Screen {
 	@Override
 	protected void init() {
 		current = this;
-		int tabWidth = 90;
+		// Five tabs must fit next to the Close button even on a small window.
+		int tabWidth = Math.min(90, (width - 10 - 74 - 4 * 4) / 5);
 		int x = 10;
 		for (Tab t : Tab.values()) {
 			Button button = Button.builder(Component.literal(label(t)), b -> {
@@ -107,7 +122,9 @@ public class ScriptKitScreen extends Screen {
 		return switch (tab) {
 			case DIFFICULTY -> difficulty;
 			case KITS -> kits;
+			case TEAM -> team;
 			case KEYBINDS -> keybinds;
+			case GUIDE -> guide;
 		};
 	}
 
@@ -115,7 +132,9 @@ public class ScriptKitScreen extends Screen {
 		return switch (t) {
 			case DIFFICULTY -> "Difficulty";
 			case KITS -> "Kits";
+			case TEAM -> "Team";
 			case KEYBINDS -> "Keybinds";
+			case GUIDE -> "Tutorial";
 		};
 	}
 
@@ -125,8 +144,17 @@ public class ScriptKitScreen extends Screen {
 		panel().renderExtra(g, mouseX, mouseY);
 		if (!status.isEmpty()) {
 			g.drawString(font, status, 10, height - 12, statusOk ? 0xFF80FF80 : 0xFFFF7070);
-		} else if (state == null && tab != Tab.KEYBINDS) {
+		} else if (state == null && tab != Tab.KEYBINDS && tab != Tab.GUIDE) {
 			g.drawString(font, "Loading from the server...", 10, height - 12, 0xFFAAAAAA);
+		}
+	}
+
+	@Override
+	public void tick() {
+		super.tick();
+		// The tutorial ticks steps off from server data, so keep it fresh while it is showing.
+		if (tab == Tab.GUIDE && ++refreshTicks % 30 == 0 && ClientNetworking.canSendMenu()) {
+			ClientNetworking.sendMenuRequest();
 		}
 	}
 

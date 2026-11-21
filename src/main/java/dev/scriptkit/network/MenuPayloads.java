@@ -15,10 +15,12 @@ public final class MenuPayloads {
 		return Identifier.fromNamespaceAndPath(ScriptKitMod.MOD_ID, path);
 	}
 
-	/** Server -> client: open the menu (sent by /scriptkit menu). */
-	public record Open() implements CustomPacketPayload {
+	/** Server -> client: open the menu, optionally on a tab (sent by /scriptkit menu and /scriptkit tutorial). */
+	public record Open(String tab) implements CustomPacketPayload {
 		public static final Type<Open> TYPE = new Type<>(id("menu_open"));
-		public static final StreamCodec<RegistryFriendlyByteBuf, Open> CODEC = StreamCodec.unit(new Open());
+		public static final StreamCodec<RegistryFriendlyByteBuf, Open> CODEC = StreamCodec.composite(
+			ByteBufCodecs.stringUtf8(16), Open::tab,
+			Open::new);
 
 		@Override
 		public Type<Open> type() {

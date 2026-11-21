@@ -38,13 +38,14 @@ public final class MenuService {
 
 	// ------------------------------------------------------------------ snapshot
 
-	public static String snapshot(MinecraftServer server, boolean canEdit, Result last) {
+	public static String snapshot(MinecraftServer server, boolean canEdit, Result last, String myTeam) {
 		CombatConfig cfg = CombatConfig.get();
 		JsonObject root = new JsonObject();
 		root.addProperty("canEdit", canEdit);
 		root.addProperty("ok", last == null || last.ok());
 		root.addProperty("message", last == null ? "" : last.message());
 		root.addProperty("defaultDifficulty", cfg.defaultDifficulty);
+		root.addProperty("myTeam", myTeam == null ? "" : myTeam);
 
 		JsonObject diffs = new JsonObject();
 		cfg.difficulties.forEach((name, d) -> diffs.add(name, GSON.toJsonTree(d)));
@@ -81,6 +82,35 @@ public final class MenuService {
 	}
 
 	// ------------------------------------------------------------------ edits
+
+	/** Puts the player on a team (created if missing, with the usual color and friendly-fire setting). */
+	public static Result joinTeam(net.minecraft.server.level.ServerPlayer player, String json) {
+		try {
+			String team = str(JsonParser.parseString(json == null || json.isBlank() ? "{}" : json).getAsJsonObject(), "team");
+			if (!ArmyAction.isValidTeamName(team)) {
+				return fail("Team names use letters, digits and . _ + - (1-64 characters), and can't be 'all'.");
+			}
+			var scoreboard = player.level().getScoreboard();
+			boolean created = scoreboard.getPlayerTeam(team) == null;
+			var t = ArmyManager.ensureTeam(scoreboard, team);
+			scoreboard.addPlayerToTeam(player.getScoreboardName(), t);
+			return ok((created ? "Created team " + team + " and joined it." : "You joined team " + team + ".")
+				+ " Armies on other teams will attack you.");
+		} catch (RuntimeException e) {
+			return fail("That request was not valid.");
+		}
+	}
+
+	/** Takes the player off their team, making them neutral. */
+	public static Result leaveTeam(net.minecraft.server.level.ServerPlayer player) {
+		var scoreboard = player.level().getScoreboard();
+		if (scoreboard.getPlayersTeam(player.getScoreboardName()) == null) {
+			return ok("You are already neutral.");
+		}
+		scoreboard.removePlayerFromTeam(player.getScoreboardName());
+		return ok("You are neutral now: every army will attack you"
+			+ (CombatConfig.get().targetTeamlessPlayers ? "." : ", except that targetTeamlessPlayers is off, so they ignore you."));
+	}
 
 	/** "Give me this kit": items into the player's inventory. Needs the player, so it lives apart from {@link #edit}. */
 	public static Result giveKit(net.minecraft.server.level.ServerPlayer player, String json) {

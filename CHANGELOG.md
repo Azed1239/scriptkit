@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Teams, neutral players and the tutorial
+- Players on no team are now neutral: every army attacks them, and the armies still fight each other (`targetTeamlessPlayers`, on by default; creative and spectator players are still ignored). `/npc info` explains the case when it is off.
+- New Team tab in the menu: see your team, join any team, create one, or go neutral. Server-checked like the other edits (operator permission), with the usual team color and friendly-fire setting for new teams.
+- New Tutorial tab: a six-step checklist with buttons that do each step and detect when it is done; progress saved in `tutorial.json`. `/scriptkit tutorial` and the client command `/sktutorial` open it, and a one-time chat line offers it the first time an operator joins a world. Nothing pops up at launch.
+- The menu's open packet can carry a starting tab; five tabs fit down to a 427-pixel-wide GUI.
+
 ### Mobs and NPCs
 - Hostile mobs (zombies, skeletons, creepers, spiders, slimes; not endermen) now notice and attack NPCs, so a creeper next to an NPC swells and explodes. They used to ignore NPCs because vanilla targeting only looks for players. Done with an extra target goal added when a mob loads, plus an access widener for `Mob.targetSelector`.
 - NPCs with AI on fight back against hostile mobs, but players and enemy NPCs always take priority: a mob is only chosen when no enemy is in range and is dropped as soon as one appears. Options `hostileMobsAttackNpcs` and `npcsFightHostileMobs` (both on by default) in `combat.json`.

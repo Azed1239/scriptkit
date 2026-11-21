@@ -17,9 +17,9 @@ public final class ClientNetworking {
 	}
 
 	/** Registers the menu handlers: "open the menu" and "here is the current state"; callbacks run on the client thread. */
-	public static void registerMenuReceivers(Runnable onOpen, Consumer<String> onState) {
+	public static void registerMenuReceivers(Consumer<String> onOpen, Consumer<String> onState) {
 		ClientPlayNetworking.registerGlobalReceiver(MenuPayloads.Open.TYPE,
-			(payload, context) -> context.client().execute(onOpen));
+			(payload, context) -> context.client().execute(() -> onOpen.accept(payload.tab())));
 		ClientPlayNetworking.registerGlobalReceiver(MenuPayloads.State.TYPE,
 			(payload, context) -> context.client().execute(() -> onState.accept(payload.json())));
 	}

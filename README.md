@@ -2,7 +2,7 @@
 
 A free, open-source (MIT) Fabric mod for scripted Minecraft SMPs: choreographed NPCs and recordable scenes for filming videos on your own server.
 
-**Status:** Phase 5 – NPCs, armies and teams, combat AI, keybinds, in-game menu.
+**Status:** Phase 6 – NPCs, armies and teams, combat AI, keybinds, in-game menu, tutorial.
 
 ## Target
 
@@ -81,7 +81,7 @@ With AI on, NPCs fight (see Combat below). With AI off they stand still and run 
 
 With AI on, each NPC:
 
-- **Targets** (shown by `/npc info`) the nearest living entity on a *different* scoreboard team within `detectionRange`: other NPCs and players. Teammates, spectators, creative players (unless `targetCreativePlayers`) and players without a team are never targeted, so you can walk among armies while filming. Enemies farther than `detectionRange` are not noticed either: when one army wipes out another, the survivors go idle unless another enemy is within range. To join a fight, put yourself on a team with `/team join`.
+- **Targets** (shown by `/npc info`) the nearest living entity on a *different* scoreboard team within `detectionRange`: other NPCs and players. Teammates, spectators and creative players (unless `targetCreativePlayers`) are never targeted. Players on no team are neutral: every army targets them (turn `targetTeamlessPlayers` off in combat.json to let a teamless player walk among armies while filming). Enemies farther than `detectionRange` are not noticed either: when one army wipes out another, the survivors go idle unless another enemy is within range. To fight for an army, join its team (Team tab or `/team join`); to fight them all, stay neutral.
 - **Hostile mobs:** zombies, skeletons, creepers, spiders and slimes attack NPCs the way they attack players (creepers swell and explode next to them), so mobs can hunt and kill NPCs. NPCs with AI on fight back, but players and enemy NPCs always come first: an NPC only picks a hostile mob when no player or enemy NPC is in range, and drops it as soon as one appears. Endermen are left alone.
 - **Melee:** chases with vanilla pathfinding (sprinting when far), swings at the weapon's real attack speed (fists fast, swords medium, axes slow), and uses the weapon's damage and knockback. In melee range it circle-strafes, changing direction at random, and sometimes steps back after being hit.
 - **Critical hits:** sometimes (`critChance`) they hop just before a swing and strike on the way down, like a player's jump-crit: 1.5x damage, crit particles and sound.
@@ -138,6 +138,7 @@ Against a player in full enchanted netherite (the `god` kit) a normal NPC lands 
 | `block` | true | Use offhand shields. |
 | `hostileMobsAttackNpcs` | true | Hostile mobs attack NPCs. |
 | `npcsFightHostileMobs` | true | NPCs with AI on fight hostile mobs (after players and enemy NPCs). |
+| `targetTeamlessPlayers` | true | Players on no team are neutral: every army attacks them. |
 | `targetCreativePlayers` | false | Also chase and swing at players in creative mode (they can't be hurt). |
 | `defaultDifficulty` | normal | Difficulty for NPCs that don't have one set. |
 | `difficulties` | (4 presets) | The presets above: accuracy, crit chance, damage, health, speed and more. |
@@ -162,7 +163,10 @@ Press **K** (rebindable in Controls > ScriptKit) or run `/scriptkit menu` to ope
 |---|---|
 | **Difficulty** | Pick a preset and tune every value with sliders (damage, health, accuracies, crit chance, swing rate, speed, shield skill, reaction, range). Save it, save a copy under a new name, reset a built-in preset or delete a custom one, make it the default for new NPCs, and apply it to an army. |
 | **Kits** | Pick a kit and set each of the six slots with the item picker (search by name or id, with icons). Left-click an enchantment to raise its level, right-click to lower it. Save, save as a new kit, reset a built-in kit or delete a custom one, and give the kit to an army, to all NPCs, to one NPC by name (pick "one NPC by name" in the Give to selector and type the name), or to yourself (pick "me": the items go in your inventory). |
+| **Team** | See your team, join any team, create a new one, or go neutral (no team). On a team you fight for it and armies on other teams attack you; neutral, every army attacks you and they fight each other too. |
 | **Keybinds** | Edit your key combos without a text editor: choose the action and team, click the key box and press the combo, then Save & reload. Entries the editor doesn't understand are kept untouched. A button opens the vanilla Controls screen for the G key, the team slots and the menu key. This tab only changes your own `keybinds.json`. |
+
+| **Tutorial** | A six-step getting-started checklist (spawn two armies, toggle the AI, change a difficulty, make a kit, set a key combo, join a team). Each step has a button that does it or opens the right tab, and ticks itself off when it detects you did it. Open it with `/scriptkit tutorial` or `/sktutorial`; the first time you join a world as an operator, one chat line offers it (once, never blocking). Progress is kept in `config/scriptkit/tutorial.json`. |
 
 Edits are validated on the server (items and enchantments must exist, levels 1-255, names use letters, digits, `-` and `_`) and saved to `combat.json` and `kits.json`, so they survive restarts and can still be hand-edited.
 

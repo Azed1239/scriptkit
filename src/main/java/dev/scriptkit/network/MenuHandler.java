@@ -21,7 +21,11 @@ public final class MenuHandler {
 
 	public static void sendState(ServerPlayer player, MenuService.Result last) {
 		ServerPlayNetworking.send(player, new MenuPayloads.State(
-			MenuService.snapshot(player.level().getServer(), canEdit(player), last)));
+			MenuService.snapshot(player.level().getServer(), canEdit(player), last, teamOf(player))));
+	}
+
+	private static String teamOf(ServerPlayer player) {
+		return player.getTeam() == null ? "" : player.getTeam().getName();
 	}
 
 	public static void handleRequest(ServerPlayer player) {
@@ -38,18 +42,21 @@ public final class MenuHandler {
 			sendState(player, new MenuService.Result(false, "You don't have permission to change ScriptKit settings."));
 			return;
 		}
-		MenuService.Result result = payload.op().equals("giveKit")
-			? MenuService.giveKit(player, payload.json())
-			: MenuService.edit(player.level().getServer(), payload.op(), payload.json());
+		MenuService.Result result = switch (payload.op()) {
+			case "giveKit" -> MenuService.giveKit(player, payload.json());
+			case "joinTeam" -> MenuService.joinTeam(player, payload.json());
+			case "leaveTeam" -> MenuService.leaveTeam(player);
+			default -> MenuService.edit(player.level().getServer(), payload.op(), payload.json());
+		};
 		sendState(player, result);
 	}
 
 	/** Opens the menu on a player's screen (client must have ScriptKit). Returns false if it can't. */
-	public static boolean open(ServerPlayer player) {
+	public static boolean open(ServerPlayer player, String tab) {
 		if (!ServerPlayNetworking.canSend(player, MenuPayloads.Open.TYPE)) {
 			return false;
 		}
-		ServerPlayNetworking.send(player, new MenuPayloads.Open());
+		ServerPlayNetworking.send(player, new MenuPayloads.Open(tab));
 		return true;
 	}
 

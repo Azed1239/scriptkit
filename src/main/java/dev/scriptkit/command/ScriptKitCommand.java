@@ -41,8 +41,17 @@ public final class ScriptKitCommand {
 				c.getSource().sendFailure(Component.literal("Only a player can open the menu."));
 				return 0;
 			}
-			if (!MenuHandler.open(player)) {
+			if (!MenuHandler.open(player, "")) {
 				c.getSource().sendFailure(Component.literal("Your client doesn't have ScriptKit installed, so it can't show the menu."));
+				return 0;
+			}
+			return 1;
+		}));
+
+		root.then(Commands.literal("tutorial").executes(c -> {
+			ServerPlayer player = c.getSource().getPlayer();
+			if (player == null || !MenuHandler.open(player, "guide")) {
+				c.getSource().sendFailure(Component.literal("Only a player with ScriptKit installed on their client can open the tutorial."));
 				return 0;
 			}
 			return 1;
@@ -56,7 +65,7 @@ public final class ScriptKitCommand {
 						.then(Commands.argument("json", StringArgumentType.greedyString())
 							.executes(ScriptKitCommand::simulateMenu)))));
 			root.then(Commands.literal("snapshot").executes(c -> {
-				c.getSource().sendSuccess(() -> Component.literal(MenuService.snapshot(c.getSource().getServer(), true, null)), false);
+				c.getSource().sendSuccess(() -> Component.literal(MenuService.snapshot(c.getSource().getServer(), true, null, "")), false);
 				return 1;
 			}));
 			root.then(Commands.literal("simulate")

@@ -197,6 +197,9 @@ public class KeybindsPanel implements MenuPanel {
 			return "Could not write keybinds.json: " + ex.getMessage();
 		}
 		int warnings = ClientKeybinds.reload();
+		if (!entries.isEmpty()) {
+			TutorialProgress.markDone("keys");
+		}
 		ok[0] = warnings == 0;
 		return warnings == 0 ? "Saved and reloaded keybinds.json." : "Saved, but " + warnings + " entry(ies) have problems - see the game log.";
 	}

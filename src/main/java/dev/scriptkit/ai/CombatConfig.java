@@ -34,6 +34,8 @@ public final class CombatConfig {
 	public String defaultDifficulty = Difficulty.NORMAL;
 	/** Named difficulty presets. Edit them or add your own; commands accept any name here. */
 	public Map<String, Difficulty> difficulties = Difficulty.defaults();
+	/** Players on no team are neutral: every army treats them as an enemy. Turn off to let them walk among armies. */
+	public boolean targetTeamlessPlayers = true;
 	/** Hostile mobs (zombies, skeletons, creepers, spiders...) attack NPCs the way they attack players. */
 	public boolean hostileMobsAttackNpcs = true;
 	/** NPCs with AI on treat hostile mobs as enemies and fight back, whatever team they are on. */

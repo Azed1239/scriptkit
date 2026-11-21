@@ -116,6 +116,7 @@ public class NpcTargetGoal extends Goal {
 		OTHER_DIMENSION("in a different dimension"),
 		NPC_NO_TEAM("this NPC is not on any team"),
 		TARGET_NO_TEAM("not on any team (join one with /team join)"),
+		NEUTRAL_PLAYERS_OFF("a player on no team, and targetTeamlessPlayers is off in combat.json"),
 		SAME_TEAM("on the same team"),
 		SPECTATOR("in spectator mode"),
 		CREATIVE("in creative mode (set targetCreativePlayers to true in combat.json to attack them)"),
@@ -152,7 +153,13 @@ public class NpcTargetGoal extends Goal {
 				return Reject.NPC_NO_TEAM;
 			}
 			if (e.getTeam() == null) {
-				return Reject.TARGET_NO_TEAM;
+				// A player on no team is neutral: every army may attack them.
+				if (!(e instanceof Player)) {
+					return Reject.TARGET_NO_TEAM;
+				}
+				if (!cfg.targetTeamlessPlayers) {
+					return Reject.NEUTRAL_PLAYERS_OFF;
+				}
 			}
 			if (npc.isAlliedTo(e)) {
 				return Reject.SAME_TEAM;
