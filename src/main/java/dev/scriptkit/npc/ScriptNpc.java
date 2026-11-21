@@ -16,6 +16,7 @@ import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.Level;
@@ -30,7 +31,12 @@ import net.minecraft.world.scores.Scoreboard;
  */
 public class ScriptNpc extends PathfinderMob {
 	/** Movement-speed attribute so that goal speed modifier 1.0 equals normal player walking speed. */
-	public static final double WALK_SPEED = 0.33;
+	public static final double WALK_SPEED = Math.sqrt(0.1);
+	/**
+	 * Speed modifier that matches player sprinting (1.3x walking). Mob ground speed grows with the
+	 * square of the speed setting, so the modifier is sqrt(1.3), not 1.3.
+	 */
+	public static final double SPRINT_MODIFIER = Math.sqrt(1.3);
 
 	private static final EntityDataAccessor<String> DATA_SKIN =
 		SynchedEntityData.defineId(ScriptNpc.class, EntityDataSerializers.STRING);
@@ -128,8 +134,8 @@ public class ScriptNpc extends PathfinderMob {
 	public static AttributeSupplier.Builder createAttributes() {
 		return PathfinderMob.createMobAttributes()
 			.add(Attributes.MAX_HEALTH, 20.0)
-			// Measured on a dev server: with speed modifier 1.0 this walks at about a player's 4.3 blocks/s.
-			// (Mobs need ~3x the attribute value a player has for the same speed.)
+			// In 1.21.11 Mob.setSpeed(s) also sets forward input to s, so ground acceleration is ~s^2
+			// (a player walks with speed 0.1 and input ~1). sqrt(0.1) therefore walks at a player's 4.3 blocks/s.
 			.add(Attributes.MOVEMENT_SPEED, WALK_SPEED)
 			.add(Attributes.ATTACK_DAMAGE, 1.0)
 			// Same base as a player, so held weapons change the swing rate (sword 1.6, axe ~0.9).
@@ -234,6 +240,11 @@ public class ScriptNpc extends PathfinderMob {
 	@Override
 	protected void readAdditionalSaveData(ValueInput input) {
 		super.readAdditionalSaveData(input);
+		// NPCs saved by older versions stored a different base speed; always use the current one.
+		AttributeInstance speed = this.getAttribute(Attributes.MOVEMENT_SPEED);
+		if (speed != null) {
+			speed.setBaseValue(WALK_SPEED);
+		}
 		this.npcName = input.getStringOr("NpcName", "");
 		this.setSkinName(input.getStringOr("SkinName", this.npcName));
 		this.teamName = input.getStringOr("TeamName", "");

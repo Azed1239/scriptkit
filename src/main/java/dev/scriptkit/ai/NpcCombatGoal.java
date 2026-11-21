@@ -30,7 +30,9 @@ import net.minecraft.world.phys.Vec3;
  */
 public class NpcCombatGoal extends Goal {
 	private static final Identifier DAMAGE_MOD = Identifier.fromNamespaceAndPath(ScriptKitMod.MOD_ID, "damage_multiplier");
-	private static final double SPRINT = 1.3;
+	private static final double SPRINT = ScriptNpc.SPRINT_MODIFIER;
+	/** A player's walking acceleration per unit of input (speed 0.1). */
+	private static final double PLAYER_WALK = 0.1;
 	private static final double RANGED_MIN = 10.0;
 	private static final double RANGED_MAX = 15.0;
 	/** Archers run (not back-step) when an enemy is closer than this. */
@@ -169,18 +171,19 @@ public class NpcCombatGoal extends Goal {
 		npc.getNavigation().stop();
 		stuckStage = 0;
 		if (!cfg.strafe) {
-			npc.getMoveControl().strafe(inReach ? 0.0F : 0.5F, 0.0F);
+			strafe(inReach ? 0.0F : 0.8F, 0.0F);
 			return;
 		}
 		if (justHurt && random.nextFloat() < 0.3F) {
 			retreatTicks = 6 + random.nextInt(8);
 		}
-		float forward = inReach ? (distSq < 1.5 ? -0.3F : 0.0F) : 0.45F;
+		// Fractions of player walking speed.
+		float forward = inReach ? (distSq < 1.5 ? -0.5F : 0.0F) : 0.8F;
 		if (retreatTicks > 0) {
 			retreatTicks--;
-			forward = -0.6F;
+			forward = -1.0F;
 		}
-		npc.getMoveControl().strafe(forward, nextStrafeSide(0.45F));
+		strafe(forward, nextStrafeSide(0.6F));
 		npc.lookAt(target, 30.0F, 30.0F);
 	}
 
@@ -235,9 +238,9 @@ public class NpcCombatGoal extends Goal {
 		} else {
 			npc.getNavigation().stop();
 			stuckStage = 0;
-			float forward = dist < RANGED_MIN ? (dist < 5.0 ? -0.8F : -0.5F) : 0.0F;
-			float side = cfg.strafe ? nextStrafeSide(0.4F) : 0.0F;
-			npc.getMoveControl().strafe(forward, side);
+			float forward = dist < RANGED_MIN ? -0.7F : 0.0F;
+			float side = cfg.strafe ? nextStrafeSide(0.5F) : 0.0F;
+			strafe(forward, side);
 			npc.lookAt(target, 30.0F, 30.0F);
 		}
 
@@ -287,8 +290,19 @@ public class NpcCombatGoal extends Goal {
 		} else {
 			// Cornered: back off and strafe.
 			npc.getNavigation().stop();
-			npc.getMoveControl().strafe(-0.8F, nextStrafeSide(0.6F));
+			strafe(-1.0F, nextStrafeSide(0.6F));
 		}
+	}
+
+	/**
+	 * Strafe at fractions of player walking speed (1.0 = 4.3 blocks/s). MoveControl's strafe
+	 * acceleration is (mob speed x input), so the input is scaled by player-walk / mob-speed.
+	 */
+	private void strafe(float forward, float side) {
+		// Reset the move control's speed modifier to 1.0 (it otherwise keeps the last path speed, or 0 after a halt).
+		npc.getMoveControl().setWantedPosition(npc.getX(), npc.getY(), npc.getZ(), 1.0);
+		float scale = (float) (PLAYER_WALK / Math.max(0.01, npc.getAttributeValue(Attributes.MOVEMENT_SPEED)));
+		npc.getMoveControl().strafe(forward * scale, side * scale);
 	}
 
 	// ---------------------------------------------------------------- shared movement
