@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Phase 4: keybinds and networking
+- Client keybinds in a "ScriptKit" Controls category: "Toggle all armies" (G) and three unbound "Toggle team" slots whose teams come from `keybinds.json`.
+- Key combos from `config/scriptkit/keybinds.json` (sample written on first run): multi-key, exact matching (Ctrl+R does not fire plain R, and plain G is not fired while a modifier is held) and edge-triggered. Actions: toggleAll, toggleTeam, enableAll, disableAll, enableTeam, disableTeam. Bad entries log a clear warning and are skipped.
+- Client-to-server `ArmyActionPayload`. The server checks gamemaster permission, validates action and team, rate-limits to 4 packets per second per player, and calls `ArmyManager`. Result shown on the action bar from the server ("Red army: ON (30 NPCs)"), or a reason it didn't happen.
+- `ArmyManager.setAi(server, team, state)` is now the single method behind `/army toggle`, `/army enable|disable`-style actions and keybind packets. Toggling a group is now group-wide: if any NPC has AI on they all go off, otherwise all go on (previously each NPC flipped on its own, which scrambled mixed groups).
+- `/scriptkit reload` (op): reloads config, combat and kits, and tells connected ScriptKit clients to reload `keybinds.json`.
+- One-time chat hint about the keybind after the first `/army toggle` in a session.
+- Unit tests (`./gradlew test`) for combo matching and keybind config parsing; dev-only `/scriptkit simulate` with `-Dscriptkit.debug=true`.
+- Server works fully without ScriptKit on the client; the client tells you if the server lacks ScriptKit.
+
 ### Phase 3: combat AI
 - Replaced the placeholder wander goal with combat AI in the `ai` package: `NpcTargetGoal` (nearest enemy on another team, staggered re-evaluation), `NpcCombatGoal` (melee chase, weapon attack-speed cooldown, strafing, shield blocking with counter-attack timing, stuck handling; bow kiting with full draw, lead and infinite non-pickup arrows) and idle look-around with no wandering.
 - `TargetCache`: one shared per-world list of combat-relevant entities, rebuilt at most every 10 ticks, so NPCs never scan the world individually.

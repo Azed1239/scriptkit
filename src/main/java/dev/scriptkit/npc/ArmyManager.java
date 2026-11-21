@@ -82,14 +82,25 @@ public final class ArmyManager {
 		return spawned;
 	}
 
-	/** Sets aiEnabled for NPCs on {@code team} (or all NPCs for {@link #ALL}). {@code state == null} flips each one. */
-	public static int toggle(MinecraftServer server, String team, Boolean state) {
-		int changed = 0;
-		for (ScriptNpc npc : select(server, team)) {
-			npc.setAiEnabled(state == null ? !npc.isAiEnabled() : state);
-			changed++;
+	/** Result of {@link #setAi}: how many NPCs were affected and the AI state they now have. */
+	public record AiResult(int count, boolean enabled) {}
+
+	/**
+	 * Sets aiEnabled for NPCs on {@code team} (or all NPCs for {@link #ALL}). {@code state == null}
+	 * toggles the group: if any NPC has AI on they all go off, otherwise they all go on, so repeated
+	 * toggles always alternate cleanly even when the group is mixed. This is the one method both the
+	 * /army commands and keybind packets use.
+	 */
+	public static AiResult setAi(MinecraftServer server, String team, Boolean state) {
+		List<ScriptNpc> npcs = select(server, team);
+		if (npcs.isEmpty()) {
+			return new AiResult(0, false);
 		}
-		return changed;
+		boolean enable = state != null ? state : npcs.stream().noneMatch(ScriptNpc::isAiEnabled);
+		for (ScriptNpc npc : npcs) {
+			npc.setAiEnabled(enable);
+		}
+		return new AiResult(npcs.size(), enable);
 	}
 
 	public static int remove(MinecraftServer server, String team) {

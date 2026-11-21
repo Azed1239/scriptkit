@@ -26,6 +26,22 @@ dependencies {
 	mappings loom.officialMojangMappings()
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	// Unit tests for the pure keybind logic (key combos, config parsing). No game needed.
+	testImplementation "org.junit.jupiter:junit-jupiter:5.11.4"
+	testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.11.4"
+}
+
+// The keybind logic lives in the client source set; let tests see it.
+sourceSets {
+	test {
+		compileClasspath += sourceSets.client.output
+		runtimeClasspath += sourceSets.client.output
+	}
+}
+
+test {
+	useJUnitPlatform()
 }
 
 processResources {

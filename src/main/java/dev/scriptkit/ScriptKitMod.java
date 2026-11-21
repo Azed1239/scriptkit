@@ -3,6 +3,8 @@ package dev.scriptkit;
 import dev.scriptkit.ai.CombatConfig;
 import dev.scriptkit.command.ArmyCommand;
 import dev.scriptkit.command.NpcCommand;
+import dev.scriptkit.command.ScriptKitCommand;
+import dev.scriptkit.network.ScriptKitNetworking;
 import dev.scriptkit.config.ScriptKitConfig;
 import dev.scriptkit.npc.BlockChangeLog;
 import dev.scriptkit.npc.KitManager;
@@ -21,6 +23,7 @@ public class ScriptKitMod implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		NpcRegistry.register();
+		ScriptKitNetworking.register();
 		ScriptKitConfig.load();
 		CombatConfig.load();
 		KitManager.load();
@@ -34,10 +37,12 @@ public class ScriptKitMod implements ModInitializer {
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			BlockChangeLog.save(server);
 			BlockChangeLog.clear();
+			ScriptKitNetworking.clearSession();
 		});
 		CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) -> {
 			NpcCommand.register(dispatcher);
 			ArmyCommand.register(dispatcher);
+			ScriptKitCommand.register(dispatcher);
 		});
 		LOGGER.info("ScriptKit initialized (common)");
 	}

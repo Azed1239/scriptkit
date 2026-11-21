@@ -9,6 +9,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import dev.scriptkit.ai.CombatConfig;
 import dev.scriptkit.config.ScriptKitConfig;
+import dev.scriptkit.network.ScriptKitNetworking;
 import dev.scriptkit.npc.BlockChangeLog;
 import dev.scriptkit.npc.ArmyManager;
 import dev.scriptkit.npc.ArmyManager.Formation;
@@ -164,14 +165,16 @@ public final class ArmyCommand {
 	}
 
 	private static int toggle(CommandContext<CommandSourceStack> c, Boolean state) {
-		int n = ArmyManager.toggle(c.getSource().getServer(), str(c, "team"), state);
-		if (n == 0) {
+		ArmyManager.AiResult r = ArmyManager.setAi(c.getSource().getServer(), str(c, "team"), state);
+		if (r.count() == 0) {
 			c.getSource().sendFailure(Component.literal("No NPCs on that team."));
 			return 0;
 		}
-		String what = state == null ? "Toggled AI on" : "Set AI " + (state ? "on" : "off") + " for";
-		c.getSource().sendSuccess(() -> Component.literal(what + " " + n + " NPC(s)."), true);
-		return n;
+		c.getSource().sendSuccess(() -> Component.literal("AI " + (r.enabled() ? "on" : "off") + " for " + r.count() + " NPC(s)."), true);
+		if (c.getSource().getPlayer() != null) {
+			ScriptKitNetworking.sendKeybindHint(c.getSource().getPlayer());
+		}
+		return r.count();
 	}
 
 	private static int remove(CommandContext<CommandSourceStack> c) {

@@ -2,7 +2,7 @@
 
 A free, open-source (MIT) Fabric mod for scripted Minecraft SMPs: choreographed NPCs and recordable scenes for filming videos on your own server.
 
-**Status:** Phase 3 – NPCs, armies and teams, combat AI.
+**Status:** Phase 4 – NPCs, armies and teams, combat AI, keybinds.
 
 ## Target
 
@@ -124,6 +124,45 @@ Target scanning is throttled: one shared list of combat-relevant entities per wo
 | `maxBreakHardness` | 5.0 | Hardest block NPCs may break (stone 1.5, iron block 5, obsidian 50). |
 | `pillarBlock` | `minecraft:cobblestone` | Block used for pillaring. |
 | `dropMinedBlocks` | false | Mined blocks drop as items. |
+
+## Keybinds (Phase 4)
+
+Toggle armies with a key instead of typing `/army toggle`. You need operator (gamemaster) permission, the same as the commands, and ScriptKit on both your client and the server (singleplayer and LAN count: the integrated server does the work). Servers without ScriptKit on your client still work fully with commands.
+
+**Controls screen** (Options > Controls > ScriptKit, rebindable like any key; changes persist):
+
+| Key | Default | Does |
+|---|---|---|
+| Toggle all armies | `G` | Flips AI for every NPC: if any are on they all go off, otherwise all go on. |
+| Toggle team 1 / 2 / 3 | unbound | Same, for the teams named in `teamSlots` (see below). |
+
+**Combos** go in `config/scriptkit/keybinds.json`, created on first start with *example* bindings (Ctrl+R red, Ctrl+B blue) that you can edit or delete:
+
+```json
+{
+  "teamSlots": ["red", "blue", "green"],
+  "bindings": [
+    { "action": "toggleTeam", "team": "red",  "keys": ["LEFT_CONTROL", "R"] },
+    { "action": "disableAll",                  "keys": ["CTRL", "SHIFT", "1"] }
+  ]
+}
+```
+
+- **Actions:** `toggleAll`, `toggleTeam`, `enableAll`, `disableAll`, `enableTeam`, `disableTeam`. The explicit enable/disable ones are handy for filming. Team actions need a `"team"`.
+- **Keys:** `A`-`Z`, `0`-`9`, `F1`-`F12`, `SPACE`, `TAB`, arrows, and so on. `CTRL`, `SHIFT` and `ALT` accept either side; `LEFT_CONTROL`, `RIGHT_SHIFT` etc. accept one side only.
+- **Exact matching:** Ctrl+R fires only the Ctrl+R binding. Plain `R` does nothing, and so does Ctrl+Shift+R. Keys no binding uses (like W) are ignored, so you can fire a combo while walking. The vanilla `G` binding never fires while Ctrl, Shift or Alt is held.
+- **Once per press:** holding the keys doesn't repeat. Nothing fires while chat or another screen is open.
+- **Feedback:** the server answers on the action bar with the real result, for example `Red army: ON (30 NPCs)`, or says why nothing happened (no permission, unknown team, no NPCs there).
+- **Bad entries:** a binding with an unknown action, key or team name is skipped with a clear warning in the game log; the rest still load.
+- `teamSlots` names the teams for the three "Toggle team" keys (the Controls entries are labelled team 1-3).
+- **Reload** after editing: `/scriptkit reload` (op). It reloads the server configs and tells every connected client that has ScriptKit to re-read its own `keybinds.json`. On a dedicated server each player edits their own file; the server never reads it.
+- The first time you use `/army toggle` in a session, chat mentions the keybind.
+- The server ignores more than 4 keybind packets per second per player.
+
+## Development
+
+- `./gradlew test` runs unit tests for the key-combo matching and `keybinds.json` parsing.
+- Starting a dev server with `-Dscriptkit.debug=true` adds `/scriptkit simulate <sender> <op|denied> <action> [team]`, which runs the keybind packet handler without a client.
 
 ## Layout
 
