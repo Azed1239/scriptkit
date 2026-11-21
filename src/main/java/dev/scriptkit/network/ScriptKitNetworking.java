@@ -23,6 +23,7 @@ public final class ScriptKitNetworking {
 	public static void register() {
 		PayloadTypeRegistry.playC2S().register(ArmyActionPayload.TYPE, ArmyActionPayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(ReloadKeybindsPayload.TYPE, ReloadKeybindsPayload.CODEC);
+		PayloadTypeRegistry.playS2C().register(GhostPayload.TYPE, GhostPayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(MenuPayloads.Open.TYPE, MenuPayloads.Open.CODEC);
 		PayloadTypeRegistry.playS2C().register(MenuPayloads.State.TYPE, MenuPayloads.State.CODEC);
 		PayloadTypeRegistry.playC2S().register(MenuPayloads.Request.TYPE, MenuPayloads.Request.CODEC);
@@ -43,6 +44,14 @@ public final class ScriptKitNetworking {
 			ArmyActionHandler.forget(id);
 			HINTED.remove(id);
 		});
+	}
+
+	/** Sends a player the formation of their selected army (empty list: clear the ghosts). Silent if they have no ScriptKit. */
+	public static void sendGhost(MinecraftServer server, UUID playerId, java.util.List<GhostPayload.Slot> slots) {
+		ServerPlayer player = server.getPlayerList().getPlayer(playerId);
+		if (player != null && ServerPlayNetworking.canSend(player, GhostPayload.TYPE)) {
+			ServerPlayNetworking.send(player, new GhostPayload(slots));
+		}
 	}
 
 	/** Tells clients that have ScriptKit to re-read their keybinds.json. Returns how many were told. */

@@ -65,6 +65,10 @@ public class ScriptNpc extends PathfinderMob {
 	private double homeY;
 	private double homeZ;
 	private boolean hasHome;
+	/** Client-only: this entity is a translucent preview of where an army would stand (Command Stick), not a real NPC. */
+	private boolean ghost;
+	private boolean ghostBlocked;
+	private UUID skinSeed;
 	private UUID ignoredTarget;
 	private long ignoreUntil;
 	private int attackCooldown = Integer.MAX_VALUE;
@@ -317,6 +321,49 @@ public class ScriptNpc extends PathfinderMob {
 		this.homeY = pos.y;
 		this.homeZ = pos.z;
 		this.hasHome = true;
+	}
+
+	public boolean isGhost() {
+		return ghost;
+	}
+
+	public boolean isGhostBlocked() {
+		return ghostBlocked;
+	}
+
+	public void setGhost(boolean ghost, boolean blocked) {
+		this.ghost = ghost;
+		this.ghostBlocked = blocked;
+	}
+
+	/** The UUID that picks this NPC's default skin; ghosts use the UUID of the NPC they copy. */
+	public UUID skinSeed() {
+		return skinSeed != null ? skinSeed : this.getUUID();
+	}
+
+	public void setSkinSeed(UUID seed) {
+		this.skinSeed = seed;
+	}
+
+	/** Ghosts glow with a colour: blue where the army fits, red where a slot has no ground. */
+	@Override
+	public boolean isCurrentlyGlowing() {
+		return ghost || super.isCurrentlyGlowing();
+	}
+
+	@Override
+	public int getTeamColor() {
+		return ghost ? (ghostBlocked ? 0xFF5555 : 0x66CCFF) : super.getTeamColor();
+	}
+
+	@Override
+	public boolean isPickable() {
+		return !ghost && super.isPickable();
+	}
+
+	@Override
+	public boolean isPushable() {
+		return !ghost && super.isPushable();
 	}
 
 	public boolean hasHome() {

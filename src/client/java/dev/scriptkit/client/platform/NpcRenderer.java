@@ -46,7 +46,7 @@ public class NpcRenderer extends EntityRenderer<ScriptNpc, NpcRenderer.State> {
 
 	@Override
 	public void extractRenderState(ScriptNpc npc, State state, float partialTick) {
-		PlayerSkin skin = NpcSkins.skinFor(npc.getSkinName(), npc.getUUID());
+		PlayerSkin skin = NpcSkins.skinFor(npc.getSkinName(), npc.skinSeed());
 		state.slimModel = skin.model() == PlayerModelType.SLIM;
 		(state.slimModel ? slim : wide).extractRenderState(npc, state, partialTick);
 		state.skin = skin;
@@ -89,6 +89,14 @@ public class NpcRenderer extends EntityRenderer<ScriptNpc, NpcRenderer.State> {
 			state.showLeftPants = true;
 			state.showRightPants = true;
 			state.showCape = false;
+			if (npc.isGhost()) {
+				// Command Stick placement preview. Vanilla draws a body that is invisible-but-visible-to-you
+				// translucent; the coloured glow outline (see ScriptNpc#getTeamColor) makes it easy to see.
+				state.isInvisible = true;
+				state.isInvisibleToPlayer = false;
+				state.nameTag = null;
+				state.scoreText = null;
+			}
 			state.rightArmPose = armPose(npc, HumanoidArm.RIGHT);
 			state.leftArmPose = armPose(npc, HumanoidArm.LEFT);
 			// While mining/building, show the tool or block instead of the weapon (like a hotbar swap).

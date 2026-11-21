@@ -3,6 +3,8 @@
 ## [Unreleased]
 
 ### Command Stick
+- Placement preview: while you hold the stick with an army selected, translucent blue-outlined ghosts of the army (same formation and skins, facing your look direction) show exactly where it will stand where you are aiming; slots with no ground are outlined red. Client-only entities, fed by a new formation packet from the server that is cleared on deselect, start and disconnect. A debug in-world smoke test (`-Dscriptkit.debug.ghost=true`) and packet round-trip unit tests cover it.
+- Found that 1.21.11 draws any render state extending `AvatarRenderState` with the vanilla player renderer, so `NpcRenderer.submit` is never called; ghosts therefore use vanilla's invisible-but-visible translucency plus a glow outline (via `ScriptNpc#getTeamColor`), not a custom tint.
 - New item, the Command Stick (`/scriptkit stick`, creative Tools tab, last tutorial step). Right-click an NPC to select its whole army (outlined and frozen), right-click the ground to move the army there with its formation intact, Shift+right-click to deselect, then press G to start the fight. Range 96 blocks, operators only, left-click does nothing to NPCs. Moved NPCs take the new spot as their regroup home; NPCs that land inside a block are nudged out. Selection outlines never survive a restart.
 - Tutorial gets a seventh step, "Arrange a battlefield".
 

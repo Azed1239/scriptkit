@@ -186,11 +186,11 @@ Army NPCs without a skin you chose get a random built-in skin (Steve, Alex, Ari,
 `/scriptkit stick` (operator) gives you the **Command Stick**, an enchanted-looking stick that is also in the creative Tools tab, and the tutorial's last step hands one out. It arranges armies for a scene:
 
 1. **Right-click an NPC** (even from far away, up to 96 blocks) to select its whole army. The army is outlined in its team color and frozen (AI off) while you arrange it.
-2. **Right-click the ground** to move the army there. Its formation stays intact, everyone faces the way you are looking, and the new spot becomes where they regroup to after a fight. Move it as often as you like.
+2. **Aim at the ground** and you will see a **ghost preview**: translucent, blue-outlined copies of the army in its formation, standing exactly where it would land (with the same skins, facing the way you look). Slots with no ground to stand on are outlined red. **Right-click** to place it. Its formation stays intact, everyone faces the way you are looking, and the new spot becomes where they regroup to after a fight. Move it as often as you like.
 3. **Shift+right-click** to deselect. Selecting another army moves the outline to it.
 4. **Press G** (or use `/army toggle all`) to start the fight. The outlines disappear and everyone fights from where you put them.
 
-Left-clicking an NPC with the stick does nothing, so it can't hurt them by accident. An NPC with no team is selected on its own. Operators only.
+Left-clicking an NPC with the stick does nothing, so it can't hurt them by accident. An NPC with no team is selected on its own. Operators only. The ghosts exist only on your screen: they are never sent to the server and can't be hit, pushed or targeted, and they disappear when you put the stick away, deselect, or start the fight. They need ScriptKit on your client.
 
 ## Keybinds (Phase 4)
 

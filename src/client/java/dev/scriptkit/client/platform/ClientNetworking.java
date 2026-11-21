@@ -33,6 +33,12 @@ public final class ClientNetworking {
 		ClientPlayNetworking.send(payload);
 	}
 
+	/** Registers the handler for the Command Stick's ghost formation; the callback runs on the client thread. */
+	public static void registerGhostReceiver(Consumer<java.util.List<dev.scriptkit.network.GhostPayload.Slot>> onSlots) {
+		ClientPlayNetworking.registerGlobalReceiver(dev.scriptkit.network.GhostPayload.TYPE,
+			(payload, context) -> context.client().execute(() -> onSlots.accept(payload.slots())));
+	}
+
 	public static boolean canSendMenu() {
 		return ClientPlayNetworking.canSend(MenuPayloads.Request.TYPE);
 	}

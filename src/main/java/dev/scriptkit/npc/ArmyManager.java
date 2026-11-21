@@ -124,6 +124,9 @@ public final class ArmyManager {
 		for (ScriptNpc npc : npcs) {
 			npc.setAiEnabled(enable);
 		}
+		if (enable) {
+			ArmySelection.armiesStarted(server); // started armies are no longer selected: drop their outline and ghosts
+		}
 		return new AiResult(npcs.size(), enable);
 	}
 

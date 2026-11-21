@@ -39,6 +39,7 @@ public final class ArmySelection {
 			npc.setAiEnabled(false); // frozen while it is arranged
 			npc.setGlowingTag(true);
 		}
+		sendGhost(server, player, members);
 		String what = now.team().isEmpty() ? clicked.getNpcName() : "army " + now.team() + " (" + members.size() + " NPCs)";
 		return new Result(true, "Selected " + what + ". Right-click the ground to move it, Shift+right-click to deselect, G to start the fight.");
 	}
@@ -83,6 +84,7 @@ public final class ArmySelection {
 			npc.fallDistance = 0.0;
 			npc.setHome(new Vec3(nx, ny, nz));
 		}
+		sendGhost(level.getServer(), player, members);
 		String what = sel.team().isEmpty() ? members.get(0).getNpcName() : "army " + sel.team() + " (" + members.size() + " NPCs)";
 		return new Result(true, "Moved " + what + ". Press G to start the fight.");
 	}
@@ -93,7 +95,43 @@ public final class ArmySelection {
 			return new Result(true, "Nothing was selected.");
 		}
 		outline(server, sel, false);
+		sendGhost(server, player, List.of());
 		return new Result(true, "Deselected.");
+	}
+
+	/** Called when armies are started (AI switched on): selections that are now running are dropped, outline and ghosts included. */
+	public static synchronized void armiesStarted(MinecraftServer server) {
+		for (Map.Entry<UUID, Selection> e : new ArrayList<>(SELECTED.entrySet())) {
+			if (members(server, e.getValue()).stream().anyMatch(ScriptNpc::isAiEnabled)) {
+				SELECTED.remove(e.getKey());
+				outline(server, e.getValue(), false);
+				sendGhost(server, e.getKey(), List.of());
+			}
+		}
+	}
+
+	/** Builds the formation (offsets from the army's centre) and sends it to the player so the client can draw ghosts. */
+	private static void sendGhost(MinecraftServer server, UUID player, List<ScriptNpc> members) {
+		List<dev.scriptkit.network.GhostPayload.Slot> slots = new ArrayList<>();
+		if (!members.isEmpty()) {
+			double cx = 0;
+			double cz = 0;
+			for (ScriptNpc npc : members) {
+				cx += npc.getX();
+				cz += npc.getZ();
+			}
+			cx /= members.size();
+			cz /= members.size();
+			for (ScriptNpc npc : members) {
+				if (slots.size() >= dev.scriptkit.network.GhostPayload.MAX_SLOTS) {
+					break;
+				}
+				slots.add(new dev.scriptkit.network.GhostPayload.Slot(npc.getSkinName(),
+					npc.getUUID().getMostSignificantBits(), npc.getUUID().getLeastSignificantBits(),
+					(float) (npc.getX() - cx), (float) (npc.getZ() - cz)));
+			}
+		}
+		dev.scriptkit.network.ScriptKitNetworking.sendGhost(server, player, slots);
 	}
 
 	/** Forget a player (disconnect) and remove the outline from whatever they had selected. */

@@ -1,4 +1,5 @@
 {
+  "entity.scriptkit.npc": "NPC",
   "item.scriptkit.command_stick": "Command Stick",
   "key.category.scriptkit.main": "ScriptKit",
   "key.scriptkit.open_menu": "Open the ScriptKit menu",
