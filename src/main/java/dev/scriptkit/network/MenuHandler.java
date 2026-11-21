@@ -44,6 +44,7 @@ public final class MenuHandler {
 		}
 		MenuService.Result result = switch (payload.op()) {
 			case "giveKit" -> MenuService.giveKit(player, payload.json());
+			case "giveStick" -> MenuService.giveStick(player);
 			case "joinTeam" -> MenuService.joinTeam(player, payload.json());
 			case "leaveTeam" -> MenuService.leaveTeam(player);
 			default -> MenuService.edit(player.level().getServer(), payload.op(), payload.json());

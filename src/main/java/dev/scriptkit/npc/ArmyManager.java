@@ -226,7 +226,7 @@ public final class ArmyManager {
 	}
 
 	/** Finds a standing height near {@code originY}; only inspects already-loaded chunks. */
-	private static double groundY(ServerLevel level, double x, double originY, double z) {
+	public static double groundY(ServerLevel level, double x, double originY, double z) {
 		BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(Math.floor(x), Math.floor(originY), Math.floor(z));
 		if (!level.isLoaded(pos)) {
 			return originY;

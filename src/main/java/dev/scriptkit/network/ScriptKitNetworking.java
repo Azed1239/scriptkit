@@ -38,6 +38,7 @@ public final class ScriptKitNetworking {
 
 		ServerPlayConnectionEvents.DISCONNECT.register((listener, server) -> {
 			MenuHandler.forget(listener.getPlayer().getUUID());
+			dev.scriptkit.npc.ArmySelection.forget(server, listener.getPlayer().getUUID());
 			UUID id = listener.getPlayer().getUUID();
 			ArmyActionHandler.forget(id);
 			HINTED.remove(id);

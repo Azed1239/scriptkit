@@ -35,6 +35,11 @@ public final class ScriptKitCommand {
 				.then(Commands.argument("players", net.minecraft.commands.arguments.EntityArgument.players())
 					.executes(c -> giveKit(c, net.minecraft.commands.arguments.EntityArgument.getPlayers(c, "players"))))));
 
+		root.then(Commands.literal("stick")
+			.executes(c -> giveStick(c, java.util.List.of(c.getSource().getPlayerOrException())))
+			.then(Commands.argument("players", net.minecraft.commands.arguments.EntityArgument.players())
+				.executes(c -> giveStick(c, net.minecraft.commands.arguments.EntityArgument.getPlayers(c, "players")))));
+
 		root.then(Commands.literal("menu").executes(c -> {
 			ServerPlayer player = c.getSource().getPlayer();
 			if (player == null) {
@@ -64,6 +69,20 @@ public final class ScriptKitCommand {
 					.then(Commands.argument("op", StringArgumentType.word())
 						.then(Commands.argument("json", StringArgumentType.greedyString())
 							.executes(ScriptKitCommand::simulateMenu)))));
+			root.then(Commands.literal("simulate-stick")
+				.then(Commands.literal("select").then(Commands.argument("npc", StringArgumentType.word()).executes(c -> {
+					var found = dev.scriptkit.npc.NpcManager.named(c.getSource().getServer(), StringArgumentType.getString(c, "npc"));
+					if (found.isEmpty()) {
+						c.getSource().sendFailure(Component.literal("No such NPC."));
+						return 0;
+					}
+					return stickResult(c, dev.scriptkit.npc.ArmySelection.select(c.getSource().getServer(), STICK_TEST_PLAYER, found.get(0)));
+				})))
+				.then(Commands.literal("move").then(Commands.argument("pos", net.minecraft.commands.arguments.coordinates.Vec3Argument.vec3())
+					.executes(c -> stickResult(c, dev.scriptkit.npc.ArmySelection.move(c.getSource().getLevel(), STICK_TEST_PLAYER,
+						net.minecraft.commands.arguments.coordinates.Vec3Argument.getVec3(c, "pos"), 90.0F)))))
+				.then(Commands.literal("deselect").executes(c -> stickResult(c,
+					dev.scriptkit.npc.ArmySelection.deselect(c.getSource().getServer(), STICK_TEST_PLAYER)))));
 			root.then(Commands.literal("snapshot").executes(c -> {
 				c.getSource().sendSuccess(() -> Component.literal(MenuService.snapshot(c.getSource().getServer(), true, null, "")), false);
 				return 1;
@@ -110,6 +129,22 @@ public final class ScriptKitCommand {
 		int given = total;
 		c.getSource().sendSuccess(() -> Component.literal("Gave kit " + kit + " (" + given + " item(s)) to " + players.size() + " player(s)."), true);
 		return given;
+	}
+
+	private static final UUID STICK_TEST_PLAYER = UUID.nameUUIDFromBytes("stick-test".getBytes());
+
+	private static int stickResult(CommandContext<CommandSourceStack> c, dev.scriptkit.npc.ArmySelection.Result r) {
+		c.getSource().sendSuccess(() -> Component.literal("[stick " + (r.ok() ? "ok" : "FAILED") + "] " + r.message()), false);
+		return r.ok() ? 1 : 0;
+	}
+
+	/** /scriptkit stick [players]: hands out the Command Stick like /give. */
+	private static int giveStick(CommandContext<CommandSourceStack> c, java.util.Collection<ServerPlayer> players) {
+		for (ServerPlayer p : players) {
+			p.getInventory().placeItemBackInInventory(new net.minecraft.world.item.ItemStack(dev.scriptkit.platform.ItemRegistry.COMMAND_STICK));
+		}
+		c.getSource().sendSuccess(() -> Component.literal("Gave the Command Stick to " + players.size() + " player(s)."), true);
+		return players.size();
 	}
 
 	private static int simulateMenu(CommandContext<CommandSourceStack> c) {

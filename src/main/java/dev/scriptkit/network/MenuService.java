@@ -112,6 +112,12 @@ public final class MenuService {
 			+ (CombatConfig.get().targetTeamlessPlayers ? "." : ", except that targetTeamlessPlayers is off, so they ignore you."));
 	}
 
+	/** "Give me the Command Stick". */
+	public static Result giveStick(net.minecraft.server.level.ServerPlayer player) {
+		player.getInventory().placeItemBackInInventory(new net.minecraft.world.item.ItemStack(dev.scriptkit.platform.ItemRegistry.COMMAND_STICK));
+		return ok("Gave you a Command Stick: right-click an NPC to select its army, the ground to move it, then press G.");
+	}
+
 	/** "Give me this kit": items into the player's inventory. Needs the player, so it lives apart from {@link #edit}. */
 	public static Result giveKit(net.minecraft.server.level.ServerPlayer player, String json) {
 		try {

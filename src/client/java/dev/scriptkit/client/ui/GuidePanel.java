@@ -31,7 +31,9 @@ public class GuidePanel implements MenuPanel {
 		new Step("keys", "5. Set a key combo", "Bind e.g. Ctrl+R to toggle a team.", "Open Keybinds",
 			s -> false),
 		new Step("team", "6. Join a team or stay neutral", "Join a team, or fight everyone.", "Open Team",
-			s -> s.has("myTeam") && !s.get("myTeam").getAsString().isEmpty()));
+			s -> s.has("myTeam") && !s.get("myTeam").getAsString().isEmpty()),
+		new Step("stick", "7. Arrange a battlefield", "Command Stick: click army, click ground, G.", "Get Command Stick",
+			s -> false));
 
 	private JsonObject state;
 	private boolean editable;
@@ -58,7 +60,7 @@ public class GuidePanel implements MenuPanel {
 		panelX = x;
 		panelY = y;
 		panelW = w;
-		rowH = h >= 190 ? 28 : 26;
+		rowH = h >= 215 ? 28 : 24;
 		int btnW = Math.min(130, w * 32 / 100);
 		for (int i = 0; i < STEPS.size(); i++) {
 			Step step = STEPS.get(i);
@@ -70,7 +72,7 @@ public class GuidePanel implements MenuPanel {
 	}
 
 	private static boolean needsOp(String id) {
-		return id.equals("spawn") || id.equals("toggle");
+		return id.equals("spawn") || id.equals("toggle") || id.equals("stick");
 	}
 
 	private void run(ScriptKitScreen screen, Step step) {
@@ -95,6 +97,10 @@ public class GuidePanel implements MenuPanel {
 			case "kit" -> screen.showTab(ScriptKitScreen.Tab.KITS);
 			case "keys" -> screen.showTab(ScriptKitScreen.Tab.KEYBINDS);
 			case "team" -> screen.showTab(ScriptKitScreen.Tab.TEAM);
+			case "stick" -> {
+				screen.sendEdit("giveStick", new JsonObject());
+				TutorialProgress.markDone("stick");
+			}
 			default -> {
 			}
 		}

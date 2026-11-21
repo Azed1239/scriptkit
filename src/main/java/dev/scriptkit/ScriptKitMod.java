@@ -9,6 +9,7 @@ import dev.scriptkit.network.ScriptKitNetworking;
 import dev.scriptkit.config.ScriptKitConfig;
 import dev.scriptkit.npc.BlockChangeLog;
 import dev.scriptkit.npc.KitManager;
+import dev.scriptkit.platform.ItemRegistry;
 import dev.scriptkit.platform.NpcRegistry;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -24,6 +25,7 @@ public class ScriptKitMod implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		NpcRegistry.register();
+		ItemRegistry.register();
 		HostileMobs.register();
 		ScriptKitNetworking.register();
 		ScriptKitConfig.load();
@@ -40,6 +42,7 @@ public class ScriptKitMod implements ModInitializer {
 			BlockChangeLog.save(server);
 			BlockChangeLog.clear();
 			ScriptKitNetworking.clearSession();
+			dev.scriptkit.npc.ArmySelection.clear();
 		});
 		CommandRegistrationCallback.EVENT.register((dispatcher, buildContext, selection) -> {
 			NpcCommand.register(dispatcher);

@@ -59,6 +59,7 @@ Omitted slots are emptied. NPCs drop all equipped gear when they die, like a pla
 | `/army difficulty` | List the difficulty presets and what each changes. |
 | `/army difficulty <team\|all> <level>` | Set an army's difficulty (also saved with each NPC). |
 | `/army kit <team\|all> <kit>` | Give every NPC on a team (or all) a kit. |
+| `/scriptkit stick [players]` | Gives the Command Stick (see below). |
 | `/scriptkit kit <kit> [players]` | Put a kit's items in your inventory (or other players'), like `/give`. Anything that doesn't fit drops at your feet; the armor you are wearing is never replaced. |
 | `/army blocks [on\|off]` | Turn NPC mining and building on or off (saved to `combat.json`). Without an argument, shows the current state. |
 | `/army cleanup` | Put back every block NPCs mined or placed. Blocks changed since by someone else are left alone. |
@@ -179,6 +180,17 @@ Edits are validated on the server (items and enchantments must exist, levels 1-2
 Armies get procedural gamer-tag names like `PingAbuse`, `BanThis`, `SwordPro` or `xXDarkLordXx` (3-16 characters, unique among NPCs, usable in commands). Set `nameStyle` to `numbered` in `config/scriptkit/config.json` to get `red-1`, `red-2` again. Names show on name tags and in death messages.
 
 Army NPCs without a skin you chose get a random built-in skin (Steve, Alex, Ari, Efe, Kai, Makena, Noor, Sunny, Zuri, in both arm shapes), picked per NPC and stable across restarts, with no account lookups. Give a skin to `/army spawn <count> <team> <kit> <skin>` to override it for the whole army, or list usernames in `skinPool` (config.json) to pick randomly from real accounts. `/npc spawn <name>` still uses the name as the skin unless you pass one.
+
+## Command Stick
+
+`/scriptkit stick` (operator) gives you the **Command Stick**, an enchanted-looking stick that is also in the creative Tools tab, and the tutorial's last step hands one out. It arranges armies for a scene:
+
+1. **Right-click an NPC** (even from far away, up to 96 blocks) to select its whole army. The army is outlined in its team color and frozen (AI off) while you arrange it.
+2. **Right-click the ground** to move the army there. Its formation stays intact, everyone faces the way you are looking, and the new spot becomes where they regroup to after a fight. Move it as often as you like.
+3. **Shift+right-click** to deselect. Selecting another army moves the outline to it.
+4. **Press G** (or use `/army toggle all`) to start the fight. The outlines disappear and everyone fights from where you put them.
+
+Left-clicking an NPC with the stick does nothing, so it can't hurt them by accident. An NPC with no team is selected on its own. Operators only.
 
 ## Keybinds (Phase 4)
 

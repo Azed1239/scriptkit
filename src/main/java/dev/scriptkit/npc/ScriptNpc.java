@@ -306,6 +306,7 @@ public class ScriptNpc extends PathfinderMob {
 			this.aiEnabled = aiEnabled;
 			if (aiEnabled && !this.level().isClientSide()) {
 				setHome(this.position()); // wherever it stands when switched on becomes its formation spot
+				this.setGlowingTag(false); // no longer selected with the Command Stick
 			}
 			refreshGoals();
 		}
@@ -388,6 +389,7 @@ public class ScriptNpc extends PathfinderMob {
 		if (!hasHome) {
 			setHome(this.position()); // NPCs saved before regrouping existed: regroup where they were loaded
 		}
+		this.setGlowingTag(false); // a selection outline never survives a restart
 		float fraction = input.getFloatOr("HealthFraction", -1.0F);
 		if (fraction >= 0.0F) {
 			this.setHealth(Math.max(0.5F, fraction * this.getMaxHealth()));
