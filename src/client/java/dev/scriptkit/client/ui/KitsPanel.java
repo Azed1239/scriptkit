@@ -51,7 +51,9 @@ public class KitsPanel implements MenuPanel {
 	private String selected;
 	private String selectedSlot = "mainhand";
 	private String newName = "";
+	private static final String ONE_NPC = "@npc";
 	private String applyTarget = "all";
+	private String npcName = "";
 	private boolean dirty;
 	private boolean editable;
 	private List<Enchant> enchantCache;
@@ -98,7 +100,8 @@ public class KitsPanel implements MenuPanel {
 		if (selected == null || !kits.containsKey(selected)) {
 			selected = kits.containsKey("knight") ? "knight" : kits.keySet().iterator().next();
 		}
-		if (!applyTarget.equals("all") && teams.stream().noneMatch(t -> t.get("name").getAsString().equals(applyTarget))) {
+		if (!applyTarget.equals("all") && !applyTarget.equals(ONE_NPC)
+			&& teams.stream().noneMatch(t -> t.get("name").getAsString().equals(applyTarget))) {
 			applyTarget = "all";
 		}
 		loadWorking();
@@ -232,19 +235,46 @@ public class KitsPanel implements MenuPanel {
 		List<String> targets = new ArrayList<>();
 		targets.add("all");
 		teams.forEach(t -> targets.add(t.get("name").getAsString()));
-		int cw = rightW * 58 / 100;
+		targets.add(ONE_NPC);
+		boolean oneNpc = applyTarget.equals(ONE_NPC);
+		int cw = rightW * (oneNpc ? 36 : 58) / 100;
 		CycleButton<String> cycle = CycleButton.<String>builder(this::targetLabel, applyTarget)
 			.withValues(targets)
-			.create(rightX, by, cw, 20, Component.literal("Army"), (btn, value) -> applyTarget = value);
+			.create(rightX, by, cw, 20, Component.literal("Give to"), (btn, value) -> {
+				applyTarget = value;
+				screen.rebuild();
+			});
 		cycle.active = editable;
 		screen.add(cycle);
-		action(screen, "Give " + selected + " to army", rightX + cw + gap, by, rightW - cw - gap,
-			"Equips every NPC on that team with this kit (saved first if you changed it). One NPC: /npc kit <name> <kit>.", () -> {
+		int giveX = rightX + cw + gap;
+		if (oneNpc) {
+			int nw = rightW * 26 / 100;
+			EditBox npcBox = new EditBox(screen.fontRenderer(), giveX, by, nw, 20, Component.literal("NPC name"));
+			npcBox.setHint(Component.literal("NPC name"));
+			npcBox.setMaxLength(32);
+			npcBox.setFilter(s -> s.matches("[A-Za-z0-9_.+\\-]*"));
+			npcBox.setValue(npcName);
+			npcBox.setResponder(s -> npcName = s);
+			npcBox.active = editable;
+			screen.add(npcBox);
+			giveX += nw + gap;
+		}
+		action(screen, oneNpc ? "Give " + selected : "Give " + selected + " to army", giveX, by, rightX + rightW - giveX,
+			oneNpc ? "Equips the NPC with that exact name (saved first if you changed the kit)."
+				: "Equips every NPC on that team with this kit (saved first if you changed it).", () -> {
+				String target = applyTarget;
+				if (oneNpc) {
+					if (npcName.isBlank()) {
+						screen.setStatus("Type the NPC's name first.", false);
+						return;
+					}
+					target = "npc:" + npcName.trim();
+				}
 				if (dirty) {
 					screen.sendEdit("saveKit", kitJson(selected));
 				}
 				JsonObject args = new JsonObject();
-				args.addProperty("target", applyTarget);
+				args.addProperty("target", target);
 				args.addProperty("kit", selected);
 				screen.sendEdit("applyKit", args);
 			});
@@ -278,6 +308,9 @@ public class KitsPanel implements MenuPanel {
 	private Component targetLabel(String target) {
 		if (target.equals("all")) {
 			return Component.literal("all armies");
+		}
+		if (target.equals(ONE_NPC)) {
+			return Component.literal("one NPC by name");
 		}
 		for (JsonObject t : teams) {
 			if (t.get("name").getAsString().equals(target)) {

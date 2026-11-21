@@ -157,7 +157,7 @@ Press **K** (rebindable in Controls > ScriptKit) or run `/scriptkit menu` to ope
 | Tab | What you can do |
 |---|---|
 | **Difficulty** | Pick a preset and tune every value with sliders (damage, health, accuracies, crit chance, swing rate, speed, shield skill, reaction, range). Save it, save a copy under a new name, reset a built-in preset or delete a custom one, make it the default for new NPCs, and apply it to an army. |
-| **Kits** | Pick a kit and set each of the six slots with the item picker (search by name or id, with icons). Left-click an enchantment to raise its level, right-click to lower it. Save, save as a new kit, reset a built-in kit or delete a custom one, and give the kit to an army or all NPCs. For a single NPC use `/npc kit <name> <kit>`. |
+| **Kits** | Pick a kit and set each of the six slots with the item picker (search by name or id, with icons). Left-click an enchantment to raise its level, right-click to lower it. Save, save as a new kit, reset a built-in kit or delete a custom one, and give the kit to an army, to all NPCs, or to one NPC by name (pick "one NPC by name" in the Give to selector and type the name). |
 | **Keybinds** | Edit your key combos without a text editor: choose the action and team, click the key box and press the combo, then Save & reload. Entries the editor doesn't understand are kept untouched. A button opens the vanilla Controls screen for the G key, the team slots and the menu key. This tab only changes your own `keybinds.json`. |
 
 Edits are validated on the server (items and enchantments must exist, levels 1-255, names use letters, digits, `-` and `_`) and saved to `combat.json` and `kits.json`, so they survive restarts and can still be hand-edited.
