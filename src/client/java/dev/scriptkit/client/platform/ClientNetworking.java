@@ -34,9 +34,18 @@ public final class ClientNetworking {
 	}
 
 	/** Registers the handler for the Command Stick's ghost formation; the callback runs on the client thread. */
-	public static void registerGhostReceiver(Consumer<java.util.List<dev.scriptkit.network.GhostPayload.Slot>> onSlots) {
+	public static void registerGhostReceiver(Consumer<dev.scriptkit.network.GhostPayload> onSlots) {
 		ClientPlayNetworking.registerGlobalReceiver(dev.scriptkit.network.GhostPayload.TYPE,
-			(payload, context) -> context.client().execute(() -> onSlots.accept(payload.slots())));
+			(payload, context) -> context.client().execute(() -> onSlots.accept(payload)));
+	}
+
+	/** Left-click with the Command Stick: cycle the army's formation, or its spacing if {@code spacing}. */
+	public static void sendStickCycle(boolean spacing) {
+		ClientPlayNetworking.send(new dev.scriptkit.network.StickCyclePayload(spacing));
+	}
+
+	public static boolean canSendStick() {
+		return ClientPlayNetworking.canSend(dev.scriptkit.network.StickCyclePayload.TYPE);
 	}
 
 	public static boolean canSendMenu() {

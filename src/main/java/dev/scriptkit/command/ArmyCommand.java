@@ -13,6 +13,7 @@ import dev.scriptkit.network.ScriptKitNetworking;
 import dev.scriptkit.npc.BlockChangeLog;
 import dev.scriptkit.npc.ArmyManager;
 import dev.scriptkit.npc.ArmyManager.Formation;
+import dev.scriptkit.npc.Formations;
 import dev.scriptkit.npc.KitManager;
 import dev.scriptkit.npc.ScriptNpc;
 import java.util.List;
@@ -34,7 +35,7 @@ public final class ArmyCommand {
 	private static final SuggestionProvider<CommandSourceStack> KITS =
 		(ctx, b) -> SharedSuggestionProvider.suggest(KitManager.names(), b);
 	private static final SuggestionProvider<CommandSourceStack> FORMATIONS =
-		(ctx, b) -> SharedSuggestionProvider.suggest(List.of("circle", "grid"), b);
+		(ctx, b) -> SharedSuggestionProvider.suggest(java.util.Arrays.stream(Formation.values()).map(f -> f.name().toLowerCase()).toList(), b);
 
 	private ArmyCommand() {}
 
@@ -58,6 +59,15 @@ public final class ArmyCommand {
 								.then(Commands.argument("difficulty", StringArgumentType.word())
 									.suggests(DIFFICULTIES)
 									.executes(c -> spawn(c, str(c, "kit"), str(c, "skin"), str(c, "formation"), str(c, "difficulty"))))))))));
+
+		root.then(Commands.literal("formation")
+			.then(Commands.argument("team", StringArgumentType.word())
+				.suggests(TEAMS)
+				.then(Commands.argument("shape", StringArgumentType.word())
+					.suggests(FORMATIONS)
+					.executes(c -> formation(c, Formations.DEFAULT_SPACING))
+					.then(Commands.argument("spacing", com.mojang.brigadier.arguments.DoubleArgumentType.doubleArg(0.8, 8.0))
+						.executes(c -> formation(c, com.mojang.brigadier.arguments.DoubleArgumentType.getDouble(c, "spacing")))))));
 
 		root.then(Commands.literal("kit")
 			.then(Commands.argument("team", StringArgumentType.word())
@@ -124,6 +134,39 @@ public final class ArmyCommand {
 	private static final SuggestionProvider<CommandSourceStack> DIFFICULTIES =
 		(ctx, b) -> SharedSuggestionProvider.suggest(CombatConfig.get().difficulties.keySet(), b);
 
+	/** Re-arranges a team (or all) in place into a formation, facing the way the command's sender looks. */
+	private static int formation(CommandContext<CommandSourceStack> c, double spacing) {
+		CommandSourceStack src = c.getSource();
+		Formation shape = Formation.parse(str(c, "shape"));
+		if (shape == null) {
+			src.sendFailure(Component.literal("Unknown formation (use circle, grid, line, column, wedge or scatter)."));
+			return 0;
+		}
+		List<ScriptNpc> npcs = new java.util.ArrayList<>();
+		for (ScriptNpc npc : ArmyManager.select(src.getServer(), str(c, "team"))) {
+			if (npc.level() == src.getLevel()) {
+				npcs.add(npc);
+			}
+		}
+		if (npcs.isEmpty()) {
+			src.sendFailure(Component.literal("No NPCs found there."));
+			return 0;
+		}
+		double x = 0;
+		double y = 0;
+		double z = 0;
+		for (ScriptNpc npc : npcs) {
+			x += npc.getX();
+			y += npc.getY();
+			z += npc.getZ();
+		}
+		net.minecraft.world.phys.Vec3 centre = new net.minecraft.world.phys.Vec3(x / npcs.size(), y / npcs.size(), z / npcs.size());
+		dev.scriptkit.npc.ArmySelection.place(src.getLevel(), npcs, shape, spacing, centre, src.getRotation().y);
+		dev.scriptkit.npc.ArmySelection.refreshGhosts(src.getServer());
+		src.sendSuccess(() -> Component.literal("Arranged " + npcs.size() + " NPC(s) in a " + shape.name().toLowerCase() + "."), true);
+		return npcs.size();
+	}
+
 	private static int spawn(CommandContext<CommandSourceStack> c, String kit, String skin, String formationName, String difficulty) {
 		CommandSourceStack src = c.getSource();
 		int count = IntegerArgumentType.getInteger(c, "count");
@@ -144,7 +187,7 @@ public final class ArmyCommand {
 		}
 		Formation formation = Formation.parse(formationName == null ? ScriptKitConfig.get().defaultFormation : formationName);
 		if (formation == null) {
-			src.sendFailure(Component.literal("Unknown formation (use circle or grid)."));
+			src.sendFailure(Component.literal("Unknown formation (use circle, grid, line, column, wedge or scatter)."));
 			return 0;
 		}
 		if (difficulty != null && !CombatConfig.get().hasDifficulty(difficulty)) {

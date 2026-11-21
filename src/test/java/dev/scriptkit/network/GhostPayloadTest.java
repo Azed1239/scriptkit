@@ -26,16 +26,17 @@ class GhostPayloadTest {
 			slots.add(new Slot(i % 2 == 0 ? "" : "Notch", id.getMostSignificantBits(), id.getLeastSignificantBits(), i * 1.5F - 20, -i * 0.5F));
 		}
 		RegistryFriendlyByteBuf buf = buffer();
-		GhostPayload.CODEC.encode(buf, new GhostPayload(slots));
+		GhostPayload.CODEC.encode(buf, new GhostPayload(slots, true));
 		GhostPayload decoded = GhostPayload.CODEC.decode(buf);
 		assertEquals(slots, decoded.slots());
+		assertTrue(decoded.rotates());
 		assertEquals(0, buf.readableBytes());
 	}
 
 	@Test
 	void emptyListMeansClear() {
 		RegistryFriendlyByteBuf buf = buffer();
-		GhostPayload.CODEC.encode(buf, new GhostPayload(List.of()));
+		GhostPayload.CODEC.encode(buf, new GhostPayload(List.of(), false));
 		assertTrue(GhostPayload.CODEC.decode(buf).slots().isEmpty());
 	}
 
@@ -46,7 +47,7 @@ class GhostPayloadTest {
 			slots.add(new Slot("", 1L, i, 0F, 0F));
 		}
 		RegistryFriendlyByteBuf buf = buffer();
-		GhostPayload.CODEC.encode(buf, new GhostPayload(slots));
+		GhostPayload.CODEC.encode(buf, new GhostPayload(slots, true));
 		assertEquals(GhostPayload.MAX_SLOTS, GhostPayload.CODEC.decode(buf).slots().size());
 	}
 

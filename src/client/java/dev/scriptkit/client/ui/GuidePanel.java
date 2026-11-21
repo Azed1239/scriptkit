@@ -32,7 +32,7 @@ public class GuidePanel implements MenuPanel {
 			s -> false),
 		new Step("team", "6. Join a team or stay neutral", "Join a team, or fight everyone.", "Open Team",
 			s -> s.has("myTeam") && !s.get("myTeam").getAsString().isEmpty()),
-		new Step("stick", "7. Arrange a battlefield", "Command Stick: click army, click ground, G.", "Get Command Stick",
+		new Step("stick", "7. Arrange a battlefield", "Command Stick: click army, left-click formation, click ground, G.", "Get Command Stick",
 			s -> false));
 
 	private JsonObject state;

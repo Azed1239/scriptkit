@@ -51,7 +51,8 @@ Omitted slots are emptied. NPCs drop all equipped gear when they die, like a pla
 
 | Command | Effect |
 |---|---|
-| `/army spawn <count> <team> [kit] [skin] [formation] [difficulty]` | Spawn `<count>` NPCs named `<team>-1`, `<team>-2`, ... around you in a `circle` (default) or `grid`. Skin defaults to each NPC's name. Numbering continues from the highest existing number on that team. |
+| `/army spawn <count> <team> [kit] [skin] [formation] [difficulty]` | Spawn `<count>` NPCs named `<team>-1`, `<team>-2`, ... around you in a `circle` (default), `grid`, `line`, `column`, `wedge` or `scatter`, facing the way you look. Skin defaults to each NPC's name. Numbering continues from the highest existing number on that team. |
+| `/army formation <team\|all> <shape> [spacing]` | Re-arrange a team in place into `circle`, `grid`, `line`, `column`, `wedge` or `scatter`, facing the way you look (spacing 0.8 to 8, default 1.5). |
 | `/army toggle <team\|all> [on\|off]` | Set `aiEnabled` for a team; without `on`/`off` each NPC's state is flipped. |
 | `/army remove <team\|all>` | Remove a team's NPCs. |
 | `/army list` | NPC count per team, and how many have AI on. |
@@ -187,10 +188,11 @@ Army NPCs without a skin you chose get a random built-in skin (Steve, Alex, Ari,
 
 1. **Right-click an NPC** (even from far away, up to 96 blocks) to select its whole army. The army is outlined in its team color and frozen (AI off) while you arrange it.
 2. **Aim at the ground** and you will see a **ghost preview**: translucent, blue-outlined copies of the army in its formation, standing exactly where it would land (with the same skins, facing the way you look). Slots with no ground to stand on are outlined red. **Right-click** to place it. Its formation stays intact, everyone faces the way you are looking, and the new spot becomes where they regroup to after a fight. Move it as often as you like.
-3. **Shift+right-click** to deselect. Selecting another army moves the outline to it.
-4. **Press G** (or use `/army toggle all`) to start the fight. The outlines disappear and everyone fights from where you put them.
+3. **Left-click** (in the air, at a block, or at an NPC) to **change the formation**: it cycles circle, grid, line, column, wedge and scatter, and the ghosts re-shape immediately. **Shift+left-click** cycles the spacing (1, 1.5, 2, 3, 4 blocks). The formation turns with where you look, so you can swing a line or wedge around before placing it. Until you pick one, the army keeps the shape it has. Everyone keeps the same slot while you cycle.
+4. **Shift+right-click** to deselect. Selecting another army moves the outline to it.
+5. **Press G** (or use `/army toggle all`) to start the fight. The outlines disappear and everyone fights from where you put them.
 
-Left-clicking an NPC with the stick does nothing, so it can't hurt them by accident. An NPC with no team is selected on its own. Operators only. The ghosts exist only on your screen: they are never sent to the server and can't be hit, pushed or targeted, and they disappear when you put the stick away, deselect, or start the fight. They need ScriptKit on your client.
+Left-clicking never hits or mines anything while you hold the stick, so it can't hurt NPCs by accident. An NPC with no team is selected on its own. Operators only. The ghosts exist only on your screen: they are never sent to the server and can't be hit, pushed or targeted, and they disappear when you put the stick away, deselect, or start the fight. They need ScriptKit on your client.
 
 ## Keybinds (Phase 4)
 

@@ -24,8 +24,8 @@ import net.minecraft.world.phys.Vec3;
 
 /**
  * The Command Stick. Right-click an NPC (from up to 96 blocks away) to select its whole army, then
- * right-click the ground to move that army there with its formation intact. Shift+right-click
- * deselects. Selected armies are frozen and outlined; press G (toggle all armies) to start the fight.
+ * right-click the ground to place that army there. Left-click cycles its formation (Shift: spacing),
+ * and the ghost preview shows the result. Shift+right-click deselects. Selected armies are frozen and outlined; press G (toggle all armies) to start the fight.
  * Operators only. The actual work lives in {@link ArmySelection}.
  */
 public class CommandStickItem extends Item {
@@ -73,6 +73,14 @@ public class CommandStickItem extends Item {
 			tell(sp, new ArmySelection.Result(false, "Aim at an NPC to select its army, or at the ground to move it."));
 		}
 		return InteractionResult.SUCCESS;
+	}
+
+	/** The client's left-click with the stick: cycle the formation shape, or the spacing with Shift. */
+	public static void handleCycle(ServerPlayer sp, boolean spacing) {
+		if (!sp.getMainHandItem().is(dev.scriptkit.platform.ItemRegistry.COMMAND_STICK) || !allowed(sp)) {
+			return;
+		}
+		tell(sp, ArmySelection.cycle(sp.level().getServer(), sp.getUUID(), spacing));
 	}
 
 	private static boolean allowed(ServerPlayer player) {

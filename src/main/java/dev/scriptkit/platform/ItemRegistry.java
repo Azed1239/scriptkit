@@ -40,7 +40,8 @@ public final class ItemRegistry {
 			.component(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true)
 			.component(DataComponents.LORE, new ItemLore(List.of(
 				Component.literal("Right-click an NPC: select its army").withStyle(ChatFormatting.GRAY),
-				Component.literal("Right-click the ground: move it there").withStyle(ChatFormatting.GRAY),
+				Component.literal("Left-click: change formation (Shift: spacing)").withStyle(ChatFormatting.GRAY),
+				Component.literal("Right-click the ground: place it there").withStyle(ChatFormatting.GRAY),
 				Component.literal("Shift+right-click: deselect").withStyle(ChatFormatting.GRAY),
 				Component.literal("Then press G to start the fight").withStyle(ChatFormatting.AQUA))))));
 

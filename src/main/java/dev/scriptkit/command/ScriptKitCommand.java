@@ -81,6 +81,10 @@ public final class ScriptKitCommand {
 				.then(Commands.literal("move").then(Commands.argument("pos", net.minecraft.commands.arguments.coordinates.Vec3Argument.vec3())
 					.executes(c -> stickResult(c, dev.scriptkit.npc.ArmySelection.move(c.getSource().getLevel(), STICK_TEST_PLAYER,
 						net.minecraft.commands.arguments.coordinates.Vec3Argument.getVec3(c, "pos"), 90.0F)))))
+				.then(Commands.literal("cycle").executes(c -> stickResult(c,
+					dev.scriptkit.npc.ArmySelection.cycle(c.getSource().getServer(), STICK_TEST_PLAYER, false)))
+					.then(Commands.literal("spacing").executes(c -> stickResult(c,
+						dev.scriptkit.npc.ArmySelection.cycle(c.getSource().getServer(), STICK_TEST_PLAYER, true)))))
 				.then(Commands.literal("deselect").executes(c -> stickResult(c,
 					dev.scriptkit.npc.ArmySelection.deselect(c.getSource().getServer(), STICK_TEST_PLAYER)))));
 			root.then(Commands.literal("snapshot").executes(c -> {

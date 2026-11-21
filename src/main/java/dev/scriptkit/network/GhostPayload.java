@@ -13,8 +13,10 @@ import net.minecraft.resources.Identifier;
  * Server -> client: the formation of the army selected with the Command Stick, so the client can draw
  * ghost copies of it where you are aiming. An empty list means "no selection: remove the ghosts".
  * Each slot is one NPC: its skin, the UUID that picks its default skin, and its offset from the army's centre.
+ * If {@code rotates} the offset is local (dx = to the right of where you look, dz = ahead) and the client rotates it
+ * to your aim; otherwise it is a world-aligned offset.
  */
-public record GhostPayload(List<Slot> slots) implements CustomPacketPayload {
+public record GhostPayload(List<Slot> slots, boolean rotates) implements CustomPacketPayload {
 	public record Slot(String skin, long idMost, long idLeast, float dx, float dz) {
 		public UUID id() {
 			return new UUID(idMost, idLeast);
@@ -29,6 +31,7 @@ public record GhostPayload(List<Slot> slots) implements CustomPacketPayload {
 
 	private static void write(RegistryFriendlyByteBuf buf, GhostPayload payload) {
 		int n = Math.min(MAX_SLOTS, payload.slots().size());
+		buf.writeBoolean(payload.rotates());
 		buf.writeVarInt(n);
 		for (int i = 0; i < n; i++) {
 			Slot s = payload.slots().get(i);
@@ -41,12 +44,13 @@ public record GhostPayload(List<Slot> slots) implements CustomPacketPayload {
 	}
 
 	private static GhostPayload read(RegistryFriendlyByteBuf buf) {
+		boolean rotates = buf.readBoolean();
 		int n = Math.min(MAX_SLOTS, buf.readVarInt());
 		List<Slot> slots = new ArrayList<>(n);
 		for (int i = 0; i < n; i++) {
 			slots.add(new Slot(buf.readUtf(16), buf.readLong(), buf.readLong(), buf.readFloat(), buf.readFloat()));
 		}
-		return new GhostPayload(slots);
+		return new GhostPayload(slots, rotates);
 	}
 
 	@Override

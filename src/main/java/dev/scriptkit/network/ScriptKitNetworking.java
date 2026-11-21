@@ -23,6 +23,7 @@ public final class ScriptKitNetworking {
 	public static void register() {
 		PayloadTypeRegistry.playC2S().register(ArmyActionPayload.TYPE, ArmyActionPayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(ReloadKeybindsPayload.TYPE, ReloadKeybindsPayload.CODEC);
+		PayloadTypeRegistry.playC2S().register(StickCyclePayload.TYPE, StickCyclePayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(GhostPayload.TYPE, GhostPayload.CODEC);
 		PayloadTypeRegistry.playS2C().register(MenuPayloads.Open.TYPE, MenuPayloads.Open.CODEC);
 		PayloadTypeRegistry.playS2C().register(MenuPayloads.State.TYPE, MenuPayloads.State.CODEC);
@@ -31,6 +32,9 @@ public final class ScriptKitNetworking {
 
 		ServerPlayNetworking.registerGlobalReceiver(ArmyActionPayload.TYPE, (payload, context) ->
 			context.server().execute(() -> ArmyActionHandler.handle(context.player(), payload)));
+
+		ServerPlayNetworking.registerGlobalReceiver(StickCyclePayload.TYPE, (payload, context) ->
+			context.server().execute(() -> dev.scriptkit.item.CommandStickItem.handleCycle(context.player(), payload.spacing())));
 
 		ServerPlayNetworking.registerGlobalReceiver(MenuPayloads.Request.TYPE, (payload, context) ->
 			context.server().execute(() -> MenuHandler.handleRequest(context.player())));
@@ -47,10 +51,10 @@ public final class ScriptKitNetworking {
 	}
 
 	/** Sends a player the formation of their selected army (empty list: clear the ghosts). Silent if they have no ScriptKit. */
-	public static void sendGhost(MinecraftServer server, UUID playerId, java.util.List<GhostPayload.Slot> slots) {
+	public static void sendGhost(MinecraftServer server, UUID playerId, java.util.List<GhostPayload.Slot> slots, boolean rotates) {
 		ServerPlayer player = server.getPlayerList().getPlayer(playerId);
 		if (player != null && ServerPlayNetworking.canSend(player, GhostPayload.TYPE)) {
-			ServerPlayNetworking.send(player, new GhostPayload(slots));
+			ServerPlayNetworking.send(player, new GhostPayload(slots, rotates));
 		}
 	}
 

@@ -27,7 +27,6 @@ import net.minecraft.world.scores.Scoreboard;
  */
 public final class ArmyManager {
 	public static final String ALL = "all";
-	private static final double SPACING = 1.5;
 	private static final ChatFormatting[] PALETTE = {
 		ChatFormatting.RED, ChatFormatting.BLUE, ChatFormatting.GREEN, ChatFormatting.YELLOW,
 		ChatFormatting.AQUA, ChatFormatting.LIGHT_PURPLE, ChatFormatting.GOLD, ChatFormatting.DARK_GREEN,
@@ -35,7 +34,7 @@ public final class ArmyManager {
 	};
 
 	public enum Formation {
-		CIRCLE, GRID;
+		CIRCLE, GRID, LINE, COLUMN, WEDGE, SCATTER;
 
 		public static Formation parse(String s) {
 			try {
@@ -71,10 +70,11 @@ public final class ArmyManager {
 			NpcManager.all(server).forEach(n -> taken.add(n.getNpcName().toLowerCase()));
 		}
 		Random rnd = new Random();
+		List<double[]> layout = Formations.layout(formation, count, Formations.DEFAULT_SPACING);
 		for (int i = 0; i < count; i++) {
-			Vec3 offset = offset(formation, i, count);
-			double x = origin.x + offset.x;
-			double z = origin.z + offset.z;
+			double[] offset = Formations.toWorld(layout.get(i)[0], layout.get(i)[1], yaw);
+			double x = origin.x + offset[0];
+			double z = origin.z + offset[1];
 			double y = groundY(level, x, origin.y, z);
 			String name = generated
 				? NameGenerator.generate(rnd, n -> taken.contains(n.toLowerCase()) || n.equalsIgnoreCase(ALL))
@@ -210,22 +210,6 @@ public final class ArmyManager {
 			}
 		}
 		return max + 1;
-	}
-
-	private static Vec3 offset(Formation formation, int i, int count) {
-		if (formation == Formation.GRID) {
-			int cols = (int) Math.ceil(Math.sqrt(count));
-			int rows = (int) Math.ceil(count / (double) cols);
-			double x = (i % cols - (cols - 1) / 2.0) * SPACING;
-			double z = (i / cols - (rows - 1) / 2.0) * SPACING;
-			return new Vec3(x, 0, z);
-		}
-		if (count == 1) {
-			return Vec3.ZERO;
-		}
-		double radius = Math.max(2.0, count * SPACING / (2 * Math.PI));
-		double angle = 2 * Math.PI * i / count;
-		return new Vec3(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
 	}
 
 	/** Finds a standing height near {@code originY}; only inspects already-loaded chunks. */

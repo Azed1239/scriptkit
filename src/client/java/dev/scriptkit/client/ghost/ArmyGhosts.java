@@ -8,7 +8,9 @@ import dev.scriptkit.platform.NpcRegistry;
 import java.util.ArrayList;
 import java.util.List;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import dev.scriptkit.npc.Formations;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.event.client.player.ClientPreAttackCallback;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
@@ -29,23 +31,36 @@ public final class ArmyGhosts {
 	private static final int FIRST_GHOST_ID = -1000; // negative ids can never clash with real entity ids
 
 	private static List<GhostPayload.Slot> slots = List.of();
+	private static boolean rotates;
 	private static final List<ScriptNpc> GHOSTS = new ArrayList<>();
 	private static ClientLevel ghostLevel;
 
 	private ArmyGhosts() {}
 
 	public static void init() {
-		ClientNetworking.registerGhostReceiver(ArmyGhosts::onSlots);
+		ClientNetworking.registerGhostReceiver(p -> onSlots(p.slots(), p.rotates()));
+		// Left-click with the stick changes the formation (Shift: spacing) instead of hitting or mining.
+		ClientPreAttackCallback.EVENT.register((mc, player, clickCount) -> {
+			if (clickCount == 0 || ItemRegistry.COMMAND_STICK == null || !player.getMainHandItem().is(ItemRegistry.COMMAND_STICK)) {
+				return false;
+			}
+			if (ClientNetworking.canSendStick()) {
+				ClientNetworking.sendStickCycle(player.isShiftKeyDown());
+			}
+			return true;
+		});
 		ClientTickEvents.END_CLIENT_TICK.register(ArmyGhosts::tick);
 		ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
 			slots = List.of();
+			rotates = false;
 			GHOSTS.clear();
 			ghostLevel = null;
 		});
 	}
 
-	private static void onSlots(List<GhostPayload.Slot> newSlots) {
+	private static void onSlots(List<GhostPayload.Slot> newSlots, boolean newRotates) {
 		slots = newSlots;
+		rotates = newRotates;
 		removeGhosts(); // rebuilt on the next tick if still needed
 	}
 
@@ -56,7 +71,7 @@ public final class ArmyGhosts {
 
 	/** For tests: pretend the server just sent this formation. */
 	public static void setSlotsForTest(List<GhostPayload.Slot> newSlots) {
-		onSlots(newSlots);
+		onSlots(newSlots, false);
 	}
 
 	private static void tick(Minecraft mc) {
@@ -84,8 +99,10 @@ public final class ArmyGhosts {
 		for (int i = 0; i < GHOSTS.size(); i++) {
 			GhostPayload.Slot s = slots.get(i);
 			ScriptNpc g = GHOSTS.get(i);
-			double x = target.x + s.dx();
-			double z = target.z + s.dz();
+			// A chosen formation is stored as (right, ahead) and turns with where you look; a kept shape is world-aligned.
+			double[] off = rotates ? Formations.toWorld(s.dx(), s.dz(), yaw) : new double[] {s.dx(), s.dz()};
+			double x = target.x + off[0];
+			double z = target.z + off[1];
 			double y = groundY(mc.level, x, target.y, z);
 			boolean blocked = Double.isNaN(y);
 			if (blocked) {
